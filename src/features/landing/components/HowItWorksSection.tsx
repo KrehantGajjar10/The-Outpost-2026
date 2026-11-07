@@ -66,7 +66,7 @@ export function HowItWorksSection() {
                   <div className="w-12 h-12 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
                     {item.icon}
                   </div>
-                  <span className="text-2xl font-bold font-mono text-warm-300 group-hover:text-forest-700 transition-colors">
+                  <span className="text-2xl font-bold font-mono text-warm-500 group-hover:text-forest-700 transition-colors">
                     {item.step}
                   </span>
                 </div>

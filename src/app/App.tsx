@@ -2,8 +2,11 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom'
 import { Providers } from './providers'
 import { Button } from '../components/ui/Button'
-import { CommandPalette } from '../components/shared/CommandPalette'
 import { ArrowLeft, Home, Compass } from 'lucide-react'
+
+const CommandPalette = lazy(() =>
+  import('../components/shared/CommandPalette').then((m) => ({ default: m.CommandPalette })),
+)
 
 const LandingPage = lazy(() =>
   import('../features/landing/pages/LandingPage').then((m) => ({ default: m.LandingPage })),
@@ -110,14 +113,18 @@ function AppShell() {
         </Routes>
       </Suspense>
 
-      <CommandPalette
-        isOpen={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        onSelectScholarship={(id) => {
-          setCommandPaletteOpen(false)
-          navigate(`/scholarships?select=${id}`)
-        }}
-      />
+      {commandPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            isOpen={commandPaletteOpen}
+            onClose={() => setCommandPaletteOpen(false)}
+            onSelectScholarship={(id) => {
+              setCommandPaletteOpen(false)
+              navigate(`/scholarships?select=${id}`)
+            }}
+          />
+        </Suspense>
+      )}
     </>
   )
 }

@@ -1,0 +1,21 @@
+# GRANTLY — Unified Scholarship Discovery & Management Platform
+
+> An educational financial aid discovery, eligibility evaluation, and application tracking workspace designed to help international students find and manage scholarships with transparency.
+
+## Overview
+
+GRANTLY organizes the complete scholarship lifecycle into an intuitive student workflow: Discover, Understand, Match, Save, Apply, and Track. It replaces scattered spreadsheets and ambiguous eligibility requirements with structured criteria matching, multi-currency filtering, deadline schedules, and document checklists.
+
+## Core Application Routes
+
+- [Landing Page & Overview](/) - Platform mission, core student benefits, and four-stage application journey.
+- [Scholarship Discovery Directory](/scholarships) - Search and filter international scholarship records by education level, field of study, funding band, and country requirements.
+- [Application Management Workspace](/applications) - Dedicated pipeline tracker for milestones, document readiness checklists, and personal application notes.
+- [Student Profile & Eligibility](/profile) - Manage your academic standing, grading scales, nationality, residency, and study preferences for explainable matching.
+- [Applicant Dashboard Demo](/dashboard) - Interactive student dashboard with financial pipeline totals, chronological deadline milestones, and notifications.
+
+## Project Scope & Disclaimers
+
+- **Frontend Prototype**: GRANTLY is a client-side prototype built for platform evaluation and demonstration.
+- **Sample Demonstration Data**: All scholarship opportunities, university names, foundation details, and application requirements presented in this application are illustrative sample records and should not be treated as verified real-world financial aid offers.
+- **Local Simulation**: All application status updates, notes, and document attachments are stored locally within your browser session (via localStorage/IndexedDB). GRANTLY does not submit applications to external scholarship boards or transmit applicant data to third-party servers.

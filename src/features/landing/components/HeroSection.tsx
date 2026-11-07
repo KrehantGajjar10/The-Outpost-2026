@@ -129,19 +129,19 @@ export function HeroSection() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-warm-50 border border-warm-200">
                   <p className="text-[11px] font-medium text-warm-500 flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                    <DollarSign className="w-3.5 h-3.5 text-forest-700" />
                     Potential Pipeline
                   </p>
                   <p className="text-lg font-bold text-forest-900 mt-0.5">$30,000</p>
-                  <p className="text-[10px] text-emerald-600 font-medium">3 active applications</p>
+                  <p className="text-[10px] text-forest-800 font-semibold">3 active applications</p>
                 </div>
                 <div className="p-3 rounded-xl bg-warm-50 border border-warm-200">
                   <p className="text-[11px] font-medium text-warm-500 flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-amber-accent" />
                     Nearest Deadline
                   </p>
-                  <p className="text-lg font-bold text-[#e11d48] mt-0.5">Nov 14, 2026</p>
-                  <p className="text-[10px] text-[#e11d48] font-medium font-mono">7 days remaining</p>
+                  <p className="text-lg font-bold text-[#be123c] mt-0.5">Nov 14, 2026</p>
+                  <p className="text-[10px] text-[#be123c] font-medium font-mono">7 days remaining</p>
                 </div>
               </div>
 
@@ -152,9 +152,9 @@ export function HeroSection() {
                     <span className="text-[10px] font-semibold tracking-wide text-forest-800 uppercase">
                       Next Submission Priority
                     </span>
-                    <h3 className="text-xs font-bold text-forest-950 mt-0.5 line-clamp-1">
+                    <p className="text-xs font-bold text-forest-950 mt-0.5 line-clamp-1">
                       Horizon Women in STEM Leadership Grant
-                    </h3>
+                    </p>
                   </div>
                   <span className="text-xs font-bold text-forest-900 px-2 py-0.5 bg-white rounded border border-emerald-200 shrink-0">
                     $10,000

@@ -24,9 +24,8 @@ export function Header() {
         <Link
           to="/"
           className="flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 rounded-lg p-1"
-          aria-label="GRANTLY Home"
         >
-          <div className="w-10 h-10 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center font-bold text-xl tracking-tight shadow-sm border border-forest-700/60 transition-transform group-hover:scale-105">
+          <div aria-hidden="true" className="w-10 h-10 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center font-bold text-xl tracking-tight shadow-sm border border-forest-700/60 transition-transform group-hover:scale-105">
             <span className="font-serif">G</span>
           </div>
           <div>

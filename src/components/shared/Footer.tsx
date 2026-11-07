@@ -9,7 +9,7 @@ export function Footer() {
           {/* Brand & Mission */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center font-bold text-lg border border-forest-700">
+              <div aria-hidden="true" className="w-9 h-9 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center font-bold text-lg border border-forest-700">
                 <span className="font-serif">G</span>
               </div>
               <span className="font-bold text-xl tracking-tight text-white">GRANTLY</span>
@@ -76,7 +76,7 @@ export function Footer() {
         </div>
 
         {/* Bottom Disclaimer */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-warm-500">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-warm-400">
           <p>© {new Date().getFullYear()} GRANTLY Educational Platform. Built for prototype demonstration.</p>
           <p className="text-center sm:text-right">
             Demonstration data only. No real financial or student data is stored.
