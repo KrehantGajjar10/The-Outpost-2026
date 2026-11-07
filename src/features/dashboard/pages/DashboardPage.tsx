@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DashboardLayout } from '../components/DashboardLayout'
 import { WelcomeSection } from '../components/WelcomeSection'
 import { OverviewMetrics } from '../components/OverviewMetrics'
@@ -7,9 +7,23 @@ import { DeadlinesTimeline } from '../components/DeadlinesTimeline'
 import { InsightsSection } from '../components/InsightsSection'
 import { ScholarshipDetailModal } from '../components/ScholarshipDetailModal'
 import { useScholarshipPipeline } from '../../../hooks/useScholarshipPipeline'
+import { profileService, PROFILE_CHANGED_EVENT } from '../../profile/services/profileService'
+import type { StudentProfile } from '../../profile/types/profile'
 
 export function DashboardPage() {
   const [activeSection, setActiveSection] = useState('overview')
+  const [studentProfile, setStudentProfile] = useState<StudentProfile>(() => profileService.getProfile())
+
+  useEffect(() => {
+    const handleProfileChange = (e: Event) => {
+      const customEvent = e as CustomEvent<StudentProfile>
+      if (customEvent.detail) {
+        setStudentProfile(customEvent.detail)
+      }
+    }
+    window.addEventListener(PROFILE_CHANGED_EVENT, handleProfileChange)
+    return () => window.removeEventListener(PROFILE_CHANGED_EVENT, handleProfileChange)
+  }, [])
   const {
     scholarships,
     filteredScholarships,
@@ -77,11 +91,13 @@ export function DashboardPage() {
       onSelectScholarshipById={handleSelectScholarshipById}
       activeSection={activeSection}
       onSectionChange={setActiveSection}
+      profile={studentProfile}
     >
       <div className="space-y-8">
         {/* Welcome Banner */}
         <WelcomeSection
           metrics={metrics}
+          profile={studentProfile}
           onJumpToDeadlines={handleJumpToDeadlines}
           onFilterInProgress={handleFilterInProgress}
         />

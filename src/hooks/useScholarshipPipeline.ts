@@ -95,8 +95,11 @@ export function useScholarshipPipeline() {
 
   // Grounded metrics computed dynamically from current saved/tracked items
   const metrics: DashboardMetrics = useMemo(() => {
-    const trackedApplications = dynamicScholarships.filter(
-      (s) => s.status === 'in_progress' || s.status === 'submitted',
+    const inProgressApplications = dynamicScholarships.filter(
+      (s) => s.status === 'in_progress',
+    )
+    const submittedApplications = dynamicScholarships.filter(
+      (s) => s.status === 'submitted',
     )
     const bookmarkedOpportunities = dynamicScholarships.filter((s) => s.isSaved)
 
@@ -108,18 +111,23 @@ export function useScholarshipPipeline() {
     const within30Days = activeTracked.filter((s) => (s.daysRemaining ?? 0) <= 30)
 
     // Sum USD funding accurately without conflating different currencies
-    const totalFunding = dynamicScholarships
-      .filter((s) => s.isSaved || s.status === 'in_progress')
-      .reduce((acc, curr) => acc + (curr.amount || curr.fundingAmount || 0), 0)
+    const usdTracked = dynamicScholarships.filter(
+      (s) => (s.isSaved || s.status === 'in_progress' || s.status === 'submitted') && s.currency === 'USD',
+    )
+    const totalFundingUSD = usdTracked.reduce(
+      (acc, curr) => acc + (curr.fundingAmount || curr.amount || 0),
+      0,
+    )
 
     const nearest = activeTracked[0]
 
     return {
       totalSaved: bookmarkedOpportunities.length,
-      inProgressCount: trackedApplications.length,
+      inProgressCount: inProgressApplications.length,
+      submittedCount: submittedApplications.length,
       upcomingDeadlinesCount: within30Days.length,
-      totalPotentialFunding: totalFunding,
-      formattedPotentialFunding: formatCurrency(totalFunding, 'USD'),
+      totalPotentialFunding: totalFundingUSD,
+      formattedPotentialFunding: formatCurrency(totalFundingUSD, 'USD'),
       nearestDeadlineDays: nearest ? (nearest.daysRemaining ?? 0) : 0,
       nearestScholarshipTitle: nearest ? nearest.title : 'None pending',
     }

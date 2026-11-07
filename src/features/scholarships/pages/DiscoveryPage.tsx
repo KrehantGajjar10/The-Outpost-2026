@@ -8,7 +8,6 @@ import { Button } from '../../../components/ui/Button'
 import { ScholarshipCard } from '../components/ScholarshipCard'
 import { ScholarshipFilterDrawer } from '../components/ScholarshipFilterDrawer'
 import { ScholarshipDetailsView } from '../components/ScholarshipDetailsView'
-import { CommandPalette } from '../../../components/shared/CommandPalette'
 import { DEMO_SCHOLARSHIPS } from '../data/mockScholarships'
 import { useScholarshipFilters, type SortOption } from '../hooks/useScholarshipFilters'
 import { savedService, SAVED_CHANGED_EVENT } from '../../saved/services/savedService'
@@ -32,14 +31,21 @@ export function DiscoveryPage() {
   const [profile, setProfile] = useState<StudentProfile>(() => profileService.getProfile())
   const [savedIds, setSavedIds] = useState<string[]>(() => savedService.getSavedIds())
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const selectId = searchParams.get('select')
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(() => {
-    const selectId = searchParams.get('select')
     if (selectId) {
       return DEMO_SCHOLARSHIPS.find((s) => s.id === selectId) || null
     }
     return null
   })
+  const [prevSelectId, setPrevSelectId] = useState(selectId)
+  if (selectId !== prevSelectId) {
+    setPrevSelectId(selectId)
+    if (selectId) {
+      const found = DEMO_SCHOLARSHIPS.find((s) => s.id === selectId)
+      if (found) setSelectedScholarship(found)
+    }
+  }
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Listen to profile and saved changes
@@ -77,23 +83,16 @@ export function DiscoveryPage() {
     savedOnly: searchParams.get('saved') === 'true',
   })
 
-  // Global Keyboard shortcuts: '/' to focus search, 'Ctrl+K'/'Cmd+K' for command palette
+  // Keyboard shortcut: '/' to focus search field when not typing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is actively typing in form inputs
       const target = e.target as HTMLElement
       const isInput =
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setCommandPaletteOpen((prev) => !prev)
-        return
-      }
-
-      if (e.key === '/' && !isInput && !commandPaletteOpen) {
+      if (e.key === '/' && !isInput) {
         e.preventDefault()
         searchInputRef.current?.focus()
       }
@@ -101,7 +100,7 @@ export function DiscoveryPage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [commandPaletteOpen])
+  }, [])
 
   const handleToggleSave = (id: string) => {
     savedService.toggle(id)
@@ -126,12 +125,12 @@ export function DiscoveryPage() {
           <div className="flex items-center gap-3 text-xs">
             <button
               type="button"
-              onClick={() => setCommandPaletteOpen(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent('grantly:open_command_palette'))}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-warm-300 text-warm-700 hover:border-forest-700 cursor-pointer shadow-2xs"
             >
               <Command className="w-3.5 h-3.5 text-forest-700" />
               <span>Command Palette</span>
-              <kbd className="text-[10px] font-mono px-1.5 py-0.2 bg-warm-100 rounded border border-warm-300">
+              <kbd className="text-[10px] font-mono px-1.5 py-0.5 bg-warm-100 rounded border border-warm-300">
                 ⌘K
               </kbd>
             </button>
@@ -434,16 +433,6 @@ export function DiscoveryPage() {
         onClose={() => setSelectedScholarship(null)}
         isSaved={selectedScholarship ? savedIds.includes(selectedScholarship.id) : false}
         onToggleSave={handleToggleSave}
-      />
-
-      {/* Command Palette Keyboard Overlay */}
-      <CommandPalette
-        isOpen={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        onSelectScholarship={(id) => {
-          const found = DEMO_SCHOLARSHIPS.find((s) => s.id === id)
-          if (found) setSelectedScholarship(found)
-        }}
       />
 
       <Footer />

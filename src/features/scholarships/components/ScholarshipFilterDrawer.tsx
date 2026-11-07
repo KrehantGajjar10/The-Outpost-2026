@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Filter, X, RotateCcw } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import type { FilterState } from '../hooks/useScholarshipFilters'
@@ -24,6 +25,25 @@ export function ScholarshipFilterDrawer({
   activeCount,
   matchedCount,
 }: ScholarshipFilterDrawerProps) {
+  const previousActiveElement = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      previousActiveElement.current = document.activeElement as HTMLElement
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose()
+        }
+      }
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown)
+        if (previousActiveElement.current) {
+          previousActiveElement.current.focus()
+        }
+      }
+    }
+  }, [isOpen, onClose])
   const content = (
     <div className="space-y-6">
       {/* Top action row */}
@@ -213,6 +233,26 @@ export function ScholarshipFilterDrawer({
           <option value="upcoming">Upcoming (&le; 21 days)</option>
           <option value="standard">Standard (&gt; 21 days)</option>
           <option value="expired">Concluded / Expired</option>
+        </select>
+      </div>
+
+      {/* Funding Award Band */}
+      <div className="space-y-2">
+        <label htmlFor="filter-funding" className="text-xs font-semibold text-warm-700 block">
+          Funding Award Range
+        </label>
+        <select
+          id="filter-funding"
+          value={filters.fundingBand}
+          onChange={(e) =>
+            onFilterChange('fundingBand', e.target.value as FilterState['fundingBand'])
+          }
+          className="w-full rounded-xl bg-white border border-warm-300 px-3 py-2 text-xs text-warm-900 focus-visible:border-forest-700 focus-visible:outline-none"
+        >
+          <option value="all">All Funding Ranges</option>
+          <option value="under_5k">Under 5,000</option>
+          <option value="5k_to_10k">5,000 – 10,000</option>
+          <option value="over_10k">Over 10,000</option>
         </select>
       </div>
 

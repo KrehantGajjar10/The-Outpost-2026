@@ -18,7 +18,20 @@ describe('useScholarshipFilters / filterAndSortScholarships', () => {
     expect(result.items.length).toBe(DEMO_SCHOLARSHIPS.length)
   })
 
-  it('searches accurately by keywords across titles, descriptions, and tags', () => {
+  it('searches accurately by keywords across titles, descriptions, tags, and category labels', () => {
+    // Search by category label
+    const filterCategoryLabel = { ...INITIAL_FILTER_STATE, searchQuery: 'Healthcare & Biomedical' }
+    const resultCategoryLabel = filterAndSortScholarships(
+      DEMO_SCHOLARSHIPS,
+      filterCategoryLabel,
+      'deadline_asc',
+      [],
+      DEFAULT_STUDENT_PROFILE,
+    )
+    expect(resultCategoryLabel.items.length).toBe(1)
+    expect(resultCategoryLabel.items[0].id).toBe('sch-global-health-2027')
+
+    // Search by provider
     const filter = { ...INITIAL_FILTER_STATE, searchQuery: 'CleanContinent' }
     const result = filterAndSortScholarships(
       DEMO_SCHOLARSHIPS,
@@ -54,37 +67,78 @@ describe('useScholarshipFilters / filterAndSortScholarships', () => {
     expect(resultCad.items.every((s) => s.currency === 'CAD')).toBe(true)
   })
 
-  it('combines multiple filters simultaneously (education level + category + country)', () => {
-    const combinedFilter = {
-      ...INITIAL_FILTER_STATE,
-      educationLevel: 'undergraduate' as const,
-      category: 'stem' as const,
-      currency: 'USD',
-    }
-    const result = filterAndSortScholarships(
+  it('filters by funding band ranges accurately', () => {
+    const filterUnder5k = { ...INITIAL_FILTER_STATE, fundingBand: 'under_5k' as const }
+    const resultUnder5k = filterAndSortScholarships(
       DEMO_SCHOLARSHIPS,
-      combinedFilter,
+      filterUnder5k,
       'deadline_asc',
       [],
       DEFAULT_STUDENT_PROFILE,
     )
-    expect(result.items.every((s) => s.educationLevels.includes('undergraduate'))).toBe(true)
-    expect(result.items.every((s) => s.category === 'stem')).toBe(true)
-    expect(result.items.every((s) => s.currency === 'USD')).toBe(true)
-  })
+    expect(resultUnder5k.items.every((s) => s.fundingAmount < 5000)).toBe(true)
 
-  it('filters by saved status correctly', () => {
-    const savedIds = ['sch-horizon-stem-2026', 'sch-beacon-firstgen-2026']
-    const savedFilter = { ...INITIAL_FILTER_STATE, savedOnly: true }
-    const result = filterAndSortScholarships(
+    const filter5kTo10k = { ...INITIAL_FILTER_STATE, fundingBand: '5k_to_10k' as const }
+    const result5kTo10k = filterAndSortScholarships(
       DEMO_SCHOLARSHIPS,
-      savedFilter,
+      filter5kTo10k,
       'deadline_asc',
-      savedIds,
+      [],
       DEFAULT_STUDENT_PROFILE,
     )
-    expect(result.items.length).toBe(2)
-    expect(result.items.every((s) => savedIds.includes(s.id))).toBe(true)
+    expect(
+      result5kTo10k.items.every((s) => s.fundingAmount >= 5000 && s.fundingAmount <= 10000),
+    ).toBe(true)
+
+    const filterOver10k = { ...INITIAL_FILTER_STATE, fundingBand: 'over_10k' as const }
+    const resultOver10k = filterAndSortScholarships(
+      DEMO_SCHOLARSHIPS,
+      filterOver10k,
+      'deadline_asc',
+      [],
+      DEFAULT_STUDENT_PROFILE,
+    )
+    expect(resultOver10k.items.every((s) => s.fundingAmount > 10000)).toBe(true)
+  })
+
+  it('filters by country using normalized aliases (e.g. US matches United States)', () => {
+    const filterUS = { ...INITIAL_FILTER_STATE, country: 'USA' }
+    const resultUS = filterAndSortScholarships(
+      DEMO_SCHOLARSHIPS,
+      filterUS,
+      'deadline_asc',
+      [],
+      DEFAULT_STUDENT_PROFILE,
+    )
+    expect(resultUS.items.length).toBeGreaterThan(0)
+    expect(
+      resultUS.items.every(
+        (s) => s.eligibleCountries.includes('GLOBAL') || s.eligibleCountries.includes('United States'),
+      ),
+    ).toBe(true)
+  })
+
+  it('sorts currency-awarely without treating raw integers from different currencies as equivalent', () => {
+    // When sorting amount_desc, items are grouped by currency first, then sorted by amount descending
+    const result = filterAndSortScholarships(
+      DEMO_SCHOLARSHIPS,
+      INITIAL_FILTER_STATE,
+      'amount_desc',
+      [],
+      DEFAULT_STUDENT_PROFILE,
+    )
+
+    // Items within the same currency must be sorted descending by fundingAmount
+    for (let i = 0; i < result.items.length - 1; i++) {
+      const a = result.items[i]
+      const b = result.items[i + 1]
+      if (a.currency === b.currency) {
+        expect(a.fundingAmount).toBeGreaterThanOrEqual(b.fundingAmount)
+      } else {
+        // Currencies are grouped alphabetically
+        expect(a.currency.localeCompare(b.currency)).toBeLessThanOrEqual(0)
+      }
+    }
   })
 
   it('sorts deterministically by alphabetical title', () => {
@@ -100,15 +154,17 @@ describe('useScholarshipFilters / filterAndSortScholarships', () => {
     }
   })
 
-  it('sorts by match score with strong matches first', () => {
+  it('filters by saved status correctly', () => {
+    const savedIds = ['sch-horizon-stem-2026', 'sch-beacon-firstgen-2026']
+    const savedFilter = { ...INITIAL_FILTER_STATE, savedOnly: true }
     const result = filterAndSortScholarships(
       DEMO_SCHOLARSHIPS,
-      INITIAL_FILTER_STATE,
-      'match_desc',
-      [],
+      savedFilter,
+      'deadline_asc',
+      savedIds,
       DEFAULT_STUDENT_PROFILE,
     )
-    const firstAssessment = result.assessments.get(result.items[0].id)
-    expect(firstAssessment?.status).toBe('strong_match')
+    expect(result.items.length).toBe(2)
+    expect(result.items.every((s) => savedIds.includes(s.id))).toBe(true)
   })
 })

@@ -2,20 +2,25 @@ import { ArrowRight, Calendar, Sparkles, Compass } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { DemoNotice } from '../../../components/shared/DemoNotice'
-import { DEMO_STUDENT_PROFILE } from '../data/mockStudentProfile'
+import { profileService } from '../../profile/services/profileService'
+import type { StudentProfile } from '../../profile/types/profile'
 import type { DashboardMetrics } from '../types/dashboard'
 
 interface WelcomeSectionProps {
   metrics: DashboardMetrics
   onJumpToDeadlines: () => void
   onFilterInProgress: () => void
+  profile?: StudentProfile
 }
 
 export function WelcomeSection({
   metrics,
   onJumpToDeadlines,
   onFilterInProgress,
+  profile: propProfile,
 }: WelcomeSectionProps) {
+  const profile = propProfile || profileService.getProfile()
+
   return (
     <section className="space-y-4">
       {/* Demo notice banner */}
@@ -27,13 +32,13 @@ export function WelcomeSection({
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-forest-950/80 text-emerald-400 text-xs font-semibold border border-forest-700">
             <Sparkles className="w-3.5 h-3.5" />
             <span>
-              {DEMO_STUDENT_PROFILE.institution} • {DEMO_STUDENT_PROFILE.academicStanding}
+              {profile.currentInstitution} • {profile.academicYear || profile.educationLevel}
             </span>
           </div>
 
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Welcome back, {DEMO_STUDENT_PROFILE.preferredName}
+              Welcome back, {profile.preferredName || profile.fullName.split(' ')[0]}
             </h1>
             <p className="text-sm sm:text-base text-forest-200 leading-relaxed">
               You are tracking <strong className="text-white font-semibold">{metrics.inProgressCount} active applications</strong> with{' '}

@@ -5,23 +5,25 @@ import type {
   EligibilityCriterionResult,
   EligibilityStatus,
 } from '../types/eligibility'
+import { isCountryMatch, isNationalityMatch } from '../../../lib/utils'
 
 /**
- * Normalizes academic scores to an estimated 0-100 scale for comparison
- * across different international grading systems (GPA 4.0, GPA 5.0, Percentage).
+ * Normalizes academic scores for compatible scales (GPA 4.0 and GPA 5.0).
+ * Returns null for ungraded or incompatible scales ('none', 'uk_honours').
  */
-export function normalizeScoreToPercentage(value: number, scale: string): number {
-  if (!value || isNaN(value)) return 0
+export function normalizeScoreToPercentage(value: number, scale: string): number | null {
+  if (!value || isNaN(value) || scale === 'none' || scale === 'uk_honours') {
+    return null
+  }
   switch (scale) {
     case 'gpa_4':
-      // 4.0 scale: 4.0 -> 100%, 3.0 -> 75%, 2.0 -> 50%
       return Math.min(100, Math.round((value / 4.0) * 100))
     case 'gpa_5':
       return Math.min(100, Math.round((value / 5.0) * 100))
     case 'percentage':
       return Math.min(100, Math.max(0, value))
     default:
-      return value > 10 ? Math.min(100, value) : Math.min(100, value * 25)
+      return null
   }
 }
 
@@ -69,74 +71,108 @@ export function assessEligibility(
   const fieldsOfStudy = scholarship.fieldsOfStudy ?? ['ALL']
   const eligibleDestinations = scholarship.eligibleDestinations ?? ['GLOBAL']
 
-  // 1. Residence or Nationality Check (Mandatory)
   const isGlobalCountry =
-    eligibleCountries.includes('GLOBAL') ||
-    eligibleCountries.length === 0
+    eligibleCountries.includes('GLOBAL') || eligibleCountries.length === 0
   const isAnyNationality =
-    nationalityRequirements.includes('ANY') ||
-    nationalityRequirements.length === 0
+    nationalityRequirements.includes('ANY') || nationalityRequirements.length === 0
 
+  // 1. Geographic Eligibility: Evaluated Independently
+  // A match in residency must NEVER bypass a nationality restriction, and vice versa.
   if (isGlobalCountry && isAnyNationality) {
     satisfiedCriteria.push({
-      id: 'residence',
+      id: 'geographic-eligibility',
       type: 'residence_or_nationality',
       label: 'Geographic Eligibility',
       status: 'satisfied',
       isMandatory: true,
       message: 'Open to applicants globally without nationality or residency restrictions.',
-      studentValue: `${profile.countryOfResidence} (${profile.nationality})`,
+      studentValue: `${profile.countryOfResidence || 'Unknown'} (${profile.nationality || 'Unknown'})`,
       requiredValue: 'Global / All Nationalities',
     })
   } else {
-    const hasResidenceInfo = Boolean(profile.countryOfResidence?.trim())
-    const hasNationalityInfo = Boolean(profile.nationality?.trim())
-
-    if (!hasResidenceInfo && !hasNationalityInfo) {
-      missingInformation.push({
-        id: 'residence',
-        type: 'residence_or_nationality',
-        label: 'Residency / Nationality Confirmation',
-        status: 'missing_info',
-        isMandatory: true,
-        message: 'Add your country of residence or nationality to verify geographic qualification.',
-        requiredValue: eligibleCountries.join(', '),
-      })
-    } else {
-      const countryMatches =
-        isGlobalCountry ||
-        eligibleCountries.some(
-          (c) => c.toLowerCase() === profile.countryOfResidence?.toLowerCase(),
-        )
-
-      const nationalityMatches =
-        isAnyNationality ||
-        nationalityRequirements.some(
-          (n) => n.toLowerCase() === profile.nationality?.toLowerCase(),
-        )
-
-      if (countryMatches || nationalityMatches) {
-        satisfiedCriteria.push({
-          id: 'residence',
+    // 1a. Country of Residence Check
+    if (!isGlobalCountry) {
+      if (!profile.countryOfResidence?.trim()) {
+        missingInformation.push({
+          id: 'residence-check',
           type: 'residence_or_nationality',
-          label: 'Geographic Eligibility',
-          status: 'satisfied',
+          label: 'Country of Residence',
+          status: 'missing_info',
           isMandatory: true,
-          message: `Your residency in ${profile.countryOfResidence} / nationality (${profile.nationality}) satisfies geographic requirements.`,
-          studentValue: `${profile.countryOfResidence} (${profile.nationality})`,
+          message: 'Add your country of residence to verify geographic qualification.',
           requiredValue: eligibleCountries.join(', '),
         })
       } else {
-        failedCriteria.push({
-          id: 'residence',
+        const countryMatches = eligibleCountries.some((c) =>
+          isCountryMatch(c, profile.countryOfResidence),
+        )
+
+        if (countryMatches) {
+          satisfiedCriteria.push({
+            id: 'residence-check',
+            type: 'residence_or_nationality',
+            label: 'Country of Residence',
+            status: 'satisfied',
+            isMandatory: true,
+            message: `Your residency in ${profile.countryOfResidence} satisfies regional eligibility.`,
+            studentValue: profile.countryOfResidence,
+            requiredValue: eligibleCountries.join(', '),
+          })
+        } else {
+          failedCriteria.push({
+            id: 'residence-check',
+            type: 'residence_or_nationality',
+            label: 'Country of Residence',
+            status: 'failed',
+            isMandatory: true,
+            message: `Applicant residing in ${profile.countryOfResidence} does not meet designated countries (${eligibleCountries.join(', ')}).`,
+            studentValue: profile.countryOfResidence,
+            requiredValue: eligibleCountries.join(', '),
+          })
+        }
+      }
+    }
+
+    // 1b. Nationality Requirement Check (Independent of residency!)
+    if (!isAnyNationality) {
+      if (!profile.nationality?.trim()) {
+        missingInformation.push({
+          id: 'nationality-check',
           type: 'residence_or_nationality',
-          label: 'Geographic Eligibility',
-          status: 'failed',
+          label: 'Nationality Requirement',
+          status: 'missing_info',
           isMandatory: true,
-          message: `Applicant from ${profile.countryOfResidence} does not match eligible regions (${eligibleCountries.join(', ')}).`,
-          studentValue: profile.countryOfResidence,
-          requiredValue: eligibleCountries.join(', '),
+          message: 'Add your nationality to verify citizenship eligibility.',
+          requiredValue: nationalityRequirements.join(', '),
         })
+      } else {
+        const nationalityMatches = nationalityRequirements.some((n) =>
+          isNationalityMatch(profile.nationality, n),
+        )
+
+        if (nationalityMatches) {
+          satisfiedCriteria.push({
+            id: 'nationality-check',
+            type: 'residence_or_nationality',
+            label: 'Nationality Requirement',
+            status: 'satisfied',
+            isMandatory: true,
+            message: `Your nationality (${profile.nationality}) satisfies designated requirements.`,
+            studentValue: profile.nationality,
+            requiredValue: nationalityRequirements.join(', '),
+          })
+        } else {
+          failedCriteria.push({
+            id: 'nationality-check',
+            type: 'residence_or_nationality',
+            label: 'Nationality Requirement',
+            status: 'failed',
+            isMandatory: true,
+            message: `Applicant nationality (${profile.nationality}) does not match designated requirements (${nationalityRequirements.join(', ')}).`,
+            studentValue: profile.nationality,
+            requiredValue: nationalityRequirements.join(', '),
+          })
+        }
       }
     }
   }
@@ -248,8 +284,7 @@ export function assessEligibility(
 
   // 4. Study Destination Check (Preference / Non-mandatory)
   const isGlobalDest =
-    eligibleDestinations.includes('GLOBAL') ||
-    eligibleDestinations.length === 0
+    eligibleDestinations.includes('GLOBAL') || eligibleDestinations.length === 0
 
   if (!isGlobalDest) {
     if (
@@ -267,9 +302,7 @@ export function assessEligibility(
       })
     } else {
       const destMatches = profile.preferredStudyDestinations.some((d) =>
-        eligibleDestinations.some(
-          (target) => target.toLowerCase() === d.toLowerCase(),
-        ),
+        eligibleDestinations.some((target) => isCountryMatch(target, d)),
       )
 
       if (destMatches) {
@@ -298,14 +331,15 @@ export function assessEligibility(
     }
   }
 
-  // 5. Academic Score Minimum Check (Mandatory if specified)
+  // 5. Academic Score Minimum Check
   const academicReq = scholarship.academicRequirement ?? (scholarship.minGpa ? {
     minScore: scholarship.minGpa,
     scale: 'gpa_4' as const,
     description: `Minimum ${scholarship.minGpa} GPA`,
   } : undefined)
-  if (academicReq && typeof academicReq.minScore === 'number' && academicReq.minScore > 0) {
-    if (!profile.academicScore || !profile.academicScore.value) {
+
+  if (academicReq && typeof academicReq.minScore === 'number' && academicReq.minScore > 0 && academicReq.scale !== 'none') {
+    if (!profile.academicScore || !profile.academicScore.scale) {
       missingInformation.push({
         id: 'academic-score',
         type: 'academic_score',
@@ -315,45 +349,98 @@ export function assessEligibility(
         message: 'Provide your academic score or GPA to evaluate academic cutoff requirements.',
         requiredValue: academicReq.description,
       })
+    } else if (profile.academicScore.scale === 'none') {
+      // Explicitly handle 'none' scale without artificial percentage or GPA conversion
+      missingInformation.push({
+        id: 'academic-score',
+        type: 'academic_score',
+        label: 'Academic Performance Minimum',
+        status: 'missing_info',
+        isMandatory: true,
+        message: `This opportunity requires a numerical minimum (${academicReq.description}), but your institution uses a non-numerical grading system ("None"). Manual transcript review is required.`,
+        studentValue: 'Ungraded / Non-numerical scale',
+        requiredValue: academicReq.description,
+      })
     } else {
-      const studentPct = normalizeScoreToPercentage(
-        profile.academicScore.value,
-        profile.academicScore.scale,
-      )
-      const requiredPct = normalizeScoreToPercentage(
-        academicReq.minScore,
-        academicReq.scale || 'gpa_4',
-      )
+      const studentScale = profile.academicScore.scale
+      const requiredScale = academicReq.scale || 'gpa_4'
 
-      if (studentPct >= requiredPct) {
-        satisfiedCriteria.push({
-          id: 'academic-score',
-          type: 'academic_score',
-          label: 'Academic Performance Minimum',
-          status: 'satisfied',
-          isMandatory: true,
-          message: `Your score (${profile.academicScore.label || profile.academicScore.value}) meets or exceeds the minimum requirement.`,
-          studentValue: profile.academicScore.label || `${profile.academicScore.value} (${profile.academicScore.scale})`,
-          requiredValue: academicReq.description,
-        })
+      // Check for scale compatibility
+      const areIdenticalScales = studentScale === requiredScale
+      const areGpaCompatible =
+        (studentScale === 'gpa_4' && requiredScale === 'gpa_5') ||
+        (studentScale === 'gpa_5' && requiredScale === 'gpa_4')
+
+      if (areIdenticalScales) {
+        if (profile.academicScore.value >= academicReq.minScore) {
+          satisfiedCriteria.push({
+            id: 'academic-score',
+            type: 'academic_score',
+            label: 'Academic Performance Minimum',
+            status: 'satisfied',
+            isMandatory: true,
+            message: `Your score (${profile.academicScore.label || profile.academicScore.value}) meets or exceeds the minimum requirement.`,
+            studentValue: profile.academicScore.label || `${profile.academicScore.value} (${studentScale})`,
+            requiredValue: academicReq.description,
+          })
+        } else {
+          failedCriteria.push({
+            id: 'academic-score',
+            type: 'academic_score',
+            label: 'Academic Performance Minimum',
+            status: 'failed',
+            isMandatory: true,
+            message: `Your score (${profile.academicScore.label || profile.academicScore.value}) falls below the required threshold (${academicReq.description}).`,
+            studentValue: profile.academicScore.label || `${profile.academicScore.value} (${studentScale})`,
+            requiredValue: academicReq.description,
+          })
+        }
+      } else if (areGpaCompatible) {
+        const studentPct = normalizeScoreToPercentage(profile.academicScore.value, studentScale)
+        const requiredPct = normalizeScoreToPercentage(academicReq.minScore, requiredScale)
+
+        if (studentPct !== null && requiredPct !== null && studentPct >= requiredPct) {
+          satisfiedCriteria.push({
+            id: 'academic-score',
+            type: 'academic_score',
+            label: 'Academic Performance Minimum',
+            status: 'satisfied',
+            isMandatory: true,
+            message: `Your score (${profile.academicScore.label || profile.academicScore.value}) proportionally meets the required threshold.`,
+            studentValue: profile.academicScore.label || `${profile.academicScore.value} (${studentScale})`,
+            requiredValue: academicReq.description,
+          })
+        } else {
+          failedCriteria.push({
+            id: 'academic-score',
+            type: 'academic_score',
+            label: 'Academic Performance Minimum',
+            status: 'failed',
+            isMandatory: true,
+            message: `Your score (${profile.academicScore.label || profile.academicScore.value}) falls below the required threshold (${academicReq.description}).`,
+            studentValue: profile.academicScore.label || `${profile.academicScore.value} (${studentScale})`,
+            requiredValue: academicReq.description,
+          })
+        }
       } else {
-        failedCriteria.push({
+        // Incompatible scales: avoid assuming universal percentage conversion
+        missingInformation.push({
           id: 'academic-score',
           type: 'academic_score',
-          label: 'Academic Performance Minimum',
-          status: 'failed',
+          label: 'Academic Score Equivalency Verification',
+          status: 'missing_info',
           isMandatory: true,
-          message: `Your score (${profile.academicScore.label || profile.academicScore.value}) falls below the required threshold (${academicReq.description}).`,
-          studentValue: profile.academicScore.label || `${profile.academicScore.value} (${profile.academicScore.scale})`,
+          message: `Grading scale mismatch: Your profile reports on the ${studentScale} scale, while this scholarship requires ${requiredScale}. Manual transcript evaluation is required.`,
+          studentValue: profile.academicScore.label || `${profile.academicScore.value} (${studentScale})`,
           requiredValue: academicReq.description,
         })
       }
     }
   }
 
-  // 6. Financial Need Check (Mandatory if need-based)
+  // 6. Financial Need Check (Tri-State Handling)
   if (scholarship.financialRequirement?.requiresNeed) {
-    if (profile.financialNeed) {
+    if (profile.financialNeed === true) {
       satisfiedCriteria.push({
         id: 'financial-need',
         type: 'financial_need',
@@ -364,23 +451,34 @@ export function assessEligibility(
         studentValue: 'Demonstrated Need',
         requiredValue: 'Need-based qualification required',
       })
-    } else {
+    } else if (profile.financialNeed === false) {
       failedCriteria.push({
         id: 'financial-need',
         type: 'financial_need',
         label: 'Demonstrated Financial Need',
         status: 'failed',
         isMandatory: true,
-        message: 'This scholarship requires demonstrated financial need, but need was not indicated in your profile.',
+        message: 'This scholarship requires demonstrated financial need, but no need was indicated in your profile.',
         studentValue: 'No need indicated',
+        requiredValue: 'Need-based qualification required',
+      })
+    } else {
+      // Unknown / undefined financial need status
+      missingInformation.push({
+        id: 'financial-need',
+        type: 'financial_need',
+        label: 'Demonstrated Financial Need Confirmation',
+        status: 'missing_info',
+        isMandatory: true,
+        message: 'Please indicate your financial need status in your student profile to evaluate this need-based grant.',
         requiredValue: 'Need-based qualification required',
       })
     }
   }
 
-  // 7. First Generation Requirement (Mandatory if applicable)
+  // 7. First Generation Requirement (Tri-State Handling)
   if (scholarship.requiresFirstGen) {
-    if (profile.firstGeneration) {
+    if (profile.firstGeneration === true) {
       satisfiedCriteria.push({
         id: 'first-gen',
         type: 'first_generation',
@@ -391,7 +489,7 @@ export function assessEligibility(
         studentValue: 'First-generation scholar',
         requiredValue: 'First-generation status required',
       })
-    } else {
+    } else if (profile.firstGeneration === false) {
       failedCriteria.push({
         id: 'first-gen',
         type: 'first_generation',
@@ -402,11 +500,23 @@ export function assessEligibility(
         studentValue: 'Not indicated as first-generation',
         requiredValue: 'First-generation status required',
       })
+    } else {
+      // Unknown / undefined first-generation status
+      missingInformation.push({
+        id: 'first-gen',
+        type: 'first_generation',
+        label: 'First-Generation Status Confirmation',
+        status: 'missing_info',
+        isMandatory: true,
+        message: 'Please specify your first-generation college student status in your profile.',
+        requiredValue: 'First-generation status required',
+      })
     }
   }
 
   // Calculate Overall Status and Explainable Score
   const hasMandatoryFailure = failedCriteria.some((c) => c.isMandatory)
+  const hasOptionalFailure = failedCriteria.some((c) => !c.isMandatory)
   const hasMissingInfo = missingInformation.length > 0
 
   let status: EligibilityStatus
@@ -419,7 +529,7 @@ export function assessEligibility(
 
   if (hasMandatoryFailure) {
     status = 'not_eligible'
-    // Never allow a high percentage score when mandatory criteria fail
+    // Mandatory failure must never yield a high score
     matchScore = Math.min(30, Math.round((satisfiedCount / Math.max(1, totalCriteria)) * 100))
     const failedNames = failedCriteria
       .filter((c) => c.isMandatory)
@@ -428,14 +538,20 @@ export function assessEligibility(
     summaryRationale = `Not eligible: Does not meet mandatory requirements for ${failedNames}.`
   } else if (hasMissingInfo) {
     status = 'potential_match'
-    // Score based on known criteria, marked as incomplete
-    matchScore = Math.round((satisfiedCount / Math.max(1, totalCriteria)) * 85)
+    // Score based on known criteria, capped at 75 due to missing data
+    matchScore = Math.min(75, Math.round((satisfiedCount / Math.max(1, totalCriteria)) * 85))
     const missingNames = missingInformation.map((c) => c.label).join(', ')
-    summaryRationale = `Potential match: Meets all verified criteria, but information is still needed for ${missingNames}.`
+    summaryRationale = `Potential match: Meets verified criteria, but information is needed for ${missingNames}.`
+  } else if (hasOptionalFailure) {
+    // Meets all mandatory criteria, but failed an optional preference (e.g. study destination)
+    status = 'potential_match'
+    const nonMandatoryFailed = failedCriteria.filter((c) => !c.isMandatory).map((c) => c.label).join(', ')
+    matchScore = Math.min(80, Math.round((satisfiedCount / Math.max(1, totalCriteria)) * 100))
+    summaryRationale = `Potential match: Meets all mandatory criteria, but does not match optional preferences for ${nonMandatoryFailed}.`
   } else {
     status = 'strong_match'
     matchScore = Math.min(100, Math.max(90, Math.round((satisfiedCount / Math.max(1, totalCriteria)) * 100)))
-    summaryRationale = 'Strong match: Meets all known academic, geographic, and field eligibility requirements.'
+    summaryRationale = 'Strong match: Meets all verified academic, geographic, and program eligibility requirements.'
   }
 
   return {

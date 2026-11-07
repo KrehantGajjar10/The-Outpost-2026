@@ -17,6 +17,7 @@ export interface StudentProfile {
 export interface DashboardMetrics {
   totalSaved: number
   inProgressCount: number
+  submittedCount?: number
   upcomingDeadlinesCount: number
   totalPotentialFunding: number
   formattedPotentialFunding: string

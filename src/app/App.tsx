@@ -1,11 +1,39 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { useState, useEffect, lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom'
 import { Providers } from './providers'
-import { LandingPage } from '../features/landing/pages/LandingPage'
-import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
-import { DiscoveryPage } from '../features/scholarships/pages/DiscoveryPage'
-import { ProfilePage } from '../features/profile/pages/ProfilePage'
 import { Button } from '../components/ui/Button'
+import { CommandPalette } from '../components/shared/CommandPalette'
 import { ArrowLeft, Home, Compass } from 'lucide-react'
+
+const LandingPage = lazy(() =>
+  import('../features/landing/pages/LandingPage').then((m) => ({ default: m.LandingPage })),
+)
+const DiscoveryPage = lazy(() =>
+  import('../features/scholarships/pages/DiscoveryPage').then((m) => ({
+    default: m.DiscoveryPage,
+  })),
+)
+const ProfilePage = lazy(() =>
+  import('../features/profile/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+)
+const DashboardPage = lazy(() =>
+  import('../features/dashboard/pages/DashboardPage').then((m) => ({
+    default: m.DashboardPage,
+  })),
+)
+
+function PageLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-warm-50 flex items-center justify-center p-6 text-center">
+      <div className="space-y-3">
+        <div className="w-10 h-10 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center font-bold text-lg mx-auto animate-pulse font-serif">
+          G
+        </div>
+        <p className="text-xs text-warm-600 font-medium">Loading workspace...</p>
+      </div>
+    </div>
+  )
+}
 
 function NotFoundPage() {
   return (
@@ -40,10 +68,32 @@ function NotFoundPage() {
   )
 }
 
-export default function App() {
+function AppShell() {
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCommandPaletteOpen((prev) => !prev)
+      }
+    }
+    const handleOpenPalette = () => {
+      setCommandPaletteOpen(true)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('grantly:open_command_palette', handleOpenPalette)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('grantly:open_command_palette', handleOpenPalette)
+    }
+  }, [])
+
   return (
-    <Providers>
-      <BrowserRouter>
+    <>
+      <Suspense fallback={<PageLoadingFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/scholarships" element={<DiscoveryPage />} />
@@ -52,6 +102,25 @@ export default function App() {
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
+      </Suspense>
+
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onSelectScholarship={(id) => {
+          setCommandPaletteOpen(false)
+          navigate(`/scholarships?select=${id}`)
+        }}
+      />
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <Providers>
+      <BrowserRouter>
+        <AppShell />
       </BrowserRouter>
     </Providers>
   )

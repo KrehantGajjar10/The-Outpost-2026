@@ -8,14 +8,17 @@ import type {
 import type { StudentProfile } from '../../profile/types/profile'
 import type { EligibilityAssessment, EligibilityStatus } from '../../eligibility/types/eligibility'
 import { assessEligibility } from '../../eligibility/services/eligibilityEngine'
-import { calculateDaysRemaining, getUrgencyLevel } from '../../../lib/utils'
+import { calculateDaysRemaining, getUrgencyLevel, isCountryMatch } from '../../../lib/utils'
 
 export type SortOption =
   | 'deadline_asc'
   | 'deadline_desc'
   | 'match_desc'
   | 'amount_desc'
+  | 'amount_asc'
   | 'title_asc'
+
+export type FundingBand = 'all' | 'under_5k' | '5k_to_10k' | 'over_10k'
 
 export interface FilterState {
   searchQuery: string
@@ -27,6 +30,7 @@ export interface FilterState {
   awardType: 'all' | AwardType
   urgency: 'all' | 'urgent' | 'upcoming' | 'standard' | 'expired'
   eligibilityStatus: 'all' | EligibilityStatus
+  fundingBand: FundingBand
   savedOnly: boolean
 }
 
@@ -40,6 +44,7 @@ export const INITIAL_FILTER_STATE: FilterState = {
   awardType: 'all',
   urgency: 'all',
   eligibilityStatus: 'all',
+  fundingBand: 'all',
   savedOnly: false,
 }
 
@@ -77,76 +82,89 @@ export function filterAndSortScholarships(
       return false
     }
 
-    // Search query filter (title, provider, description, tags, fields)
+    // Search query filter (title, provider, category, description, tags, fields)
     if (query) {
       const matchTitle = item.title.toLowerCase().includes(query)
       const matchProvider = item.provider.toLowerCase().includes(query)
+      const matchCategory = item.categoryLabel.toLowerCase().includes(query)
       const matchDesc =
         item.shortDescription.toLowerCase().includes(query) ||
         item.detailedDescription.toLowerCase().includes(query)
       const matchTags = item.tags.some((t) => t.toLowerCase().includes(query))
       const matchFields = item.fieldsOfStudy.some((f) => f.toLowerCase().includes(query))
 
-      if (!matchTitle && !matchProvider && !matchDesc && !matchTags && !matchFields) {
+      if (!matchTitle && !matchProvider && !matchCategory && !matchDesc && !matchTags && !matchFields) {
         return false
       }
     }
 
-    // Country filter
+    // Country filter (with alias normalization)
     if (filters.country !== 'all') {
       const isGlobal = item.eligibleCountries.includes('GLOBAL')
-      const matchesCountry = item.eligibleCountries.some(
-        (c) => c.toLowerCase() === filters.country.toLowerCase(),
+      const matchesCountry = item.eligibleCountries.some((c) =>
+        isCountryMatch(c, filters.country),
       )
-      if (!isGlobal && !matchesCountry) return false
+      if (!isGlobal && !matchesCountry) {
+        return false
+      }
     }
 
-    // Education level filter
+    // Education Level filter
     if (filters.educationLevel !== 'all') {
       if (!item.educationLevels.includes(filters.educationLevel)) {
         return false
       }
     }
 
-    // Field of study filter
+    // Field of Study filter
     if (filters.fieldOfStudy !== 'all') {
+      const targetField = filters.fieldOfStudy.toLowerCase()
       const isAll = item.fieldsOfStudy.includes('ALL')
-      const target = filters.fieldOfStudy.toLowerCase()
       const matchesField = item.fieldsOfStudy.some((f) =>
-        f.toLowerCase().includes(target),
+        f.toLowerCase().includes(targetField),
       )
-      if (!isAll && !matchesField) return false
-    }
-
-    // Category filter
-    if (filters.category !== 'all' && item.category !== filters.category) {
-      return false
-    }
-
-    // Currency filter
-    if (filters.currency !== 'all' && item.currency !== filters.currency) {
-      return false
-    }
-
-    // Award type filter
-    if (filters.awardType !== 'all' && item.awardType !== filters.awardType) {
-      return false
-    }
-
-    // Deadline urgency filter
-    if (filters.urgency !== 'all') {
-      if (filters.urgency === 'expired') {
-        if (days >= 0) return false
-      } else if (filters.urgency === 'urgent') {
-        if (urgency !== 'urgent') return false
-      } else if (filters.urgency === 'upcoming') {
-        if (urgency !== 'upcoming') return false
-      } else if (filters.urgency === 'standard') {
-        if (urgency !== 'normal') return false
+      if (!isAll && !matchesField) {
+        return false
       }
     }
 
-    // Eligibility status filter
+    // Category filter
+    if (filters.category !== 'all') {
+      if (item.category !== filters.category) {
+        return false
+      }
+    }
+
+    // Currency filter
+    if (filters.currency !== 'all') {
+      if (item.currency !== filters.currency) {
+        return false
+      }
+    }
+
+    // Award Type filter
+    if (filters.awardType !== 'all') {
+      if (item.awardType !== filters.awardType) {
+        return false
+      }
+    }
+
+    // Deadline Urgency filter
+    if (filters.urgency !== 'all') {
+      if (urgency !== filters.urgency) {
+        return false
+      }
+    }
+
+    // Funding Band filter
+    if (filters.fundingBand !== 'all') {
+      const amt = item.fundingAmount
+      if (filters.fundingBand === 'under_5k' && amt >= 5000) return false
+      if (filters.fundingBand === '5k_to_10k' && (amt < 5000 || amt > 10000)) return false
+      if (filters.fundingBand === 'over_10k' && amt <= 10000) return false
+    }
+
+    // Eligibility Status filter
     if (filters.eligibilityStatus !== 'all') {
       if (assessment?.status !== filters.eligibilityStatus) {
         return false
@@ -187,11 +205,21 @@ export function filterAndSortScholarships(
         return (assessmentB?.matchScore ?? 0) - (assessmentA?.matchScore ?? 0)
       }
       case 'amount_desc': {
-        // Only strictly compare within identical currency or sort numerically
-        if (a.currency === b.currency) {
-          return b.fundingAmount - a.fundingAmount
+        // Currency-aware sorting: group by currency first, then sort by amount descending.
+        // Never compare raw numbers across different currencies as if they were equivalent.
+        const currDiff = a.currency.localeCompare(b.currency)
+        if (currDiff !== 0) {
+          return currDiff
         }
         return b.fundingAmount - a.fundingAmount
+      }
+      case 'amount_asc': {
+        // Currency-aware sorting: group by currency first, then sort by amount ascending.
+        const currDiff = a.currency.localeCompare(b.currency)
+        if (currDiff !== 0) {
+          return currDiff
+        }
+        return a.fundingAmount - b.fundingAmount
       }
       case 'title_asc': {
         return a.title.localeCompare(b.title)
@@ -221,7 +249,18 @@ export function useScholarshipFilters(
     [scholarships, filters, sortOption, savedIds, profile],
   )
 
-  const activeFilterCount = useMemo(() => {
+  const setFilter = useCallback(
+    <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+      setFilters((prev) => ({ ...prev, [key]: value }))
+    },
+    [],
+  )
+
+  const resetFilters = useCallback(() => {
+    setFilters(INITIAL_FILTER_STATE)
+  }, [])
+
+  const activeFiltersCount = useMemo(() => {
     let count = 0
     if (filters.searchQuery.trim()) count++
     if (filters.country !== 'all') count++
@@ -232,17 +271,12 @@ export function useScholarshipFilters(
     if (filters.awardType !== 'all') count++
     if (filters.urgency !== 'all') count++
     if (filters.eligibilityStatus !== 'all') count++
+    if (filters.fundingBand !== 'all') count++
     if (filters.savedOnly) count++
     return count
   }, [filters])
 
-  const setFilterField = useCallback(<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
-    setFilters((prev) => ({ ...prev, [key]: value }))
-  }, [])
-
-  const resetFilters = useCallback(() => {
-    setFilters(INITIAL_FILTER_STATE)
-  }, [])
+  const setFilterField = setFilter
 
   const clearFilter = useCallback((key: keyof FilterState) => {
     setFilters((prev) => ({ ...prev, [key]: INITIAL_FILTER_STATE[key] }))
@@ -250,16 +284,17 @@ export function useScholarshipFilters(
 
   return {
     filters,
-    setFilters,
+    setFilter,
     setFilterField,
-    resetFilters,
     clearFilter,
+    resetFilters,
     sortOption,
     setSortOption,
     filteredScholarships: items,
     assessments,
     daysRemainingMap,
-    activeFilterCount,
+    activeFiltersCount,
+    activeFilterCount: activeFiltersCount,
     totalCount: scholarships.length,
     matchedCount: items.length,
   }

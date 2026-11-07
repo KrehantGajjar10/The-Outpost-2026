@@ -55,11 +55,13 @@ const globalStemScholarship: Scholarship = {
 }
 
 describe('eligibilityEngine', () => {
-  it('correctly normalizes different academic score scales', () => {
+  it('correctly normalizes compatible academic score scales and rejects none', () => {
     expect(normalizeScoreToPercentage(4.0, 'gpa_4')).toBe(100)
     expect(normalizeScoreToPercentage(3.0, 'gpa_4')).toBe(75)
     expect(normalizeScoreToPercentage(4.5, 'gpa_5')).toBe(90)
     expect(normalizeScoreToPercentage(85, 'percentage')).toBe(85)
+    expect(normalizeScoreToPercentage(0, 'none')).toBeNull()
+    expect(normalizeScoreToPercentage(3.5, 'none')).toBeNull()
   })
 
   it('evaluates a strong match when all mandatory requirements are satisfied', () => {
@@ -106,18 +108,33 @@ describe('eligibilityEngine', () => {
     expect(assessment.missingInformation.some((m) => m.type === 'field_of_study')).toBe(true)
   })
 
-  it('identifies country and residency restrictions correctly', () => {
-    const ukOnlyScholarship: Scholarship = {
+  // REGRESSION TEST 1: Independent Residency and Nationality restrictions
+  it('evaluates residency and nationality independently (matching residency does NOT bypass nationality restriction)', () => {
+    const ukCitizenOnlyInCanada: Scholarship = {
       ...globalStemScholarship,
-      eligibleCountries: ['United Kingdom'],
-      nationalityRequirements: ['British'],
+      eligibleCountries: ['Canada'], // Matches Elena's residency
+      nationalityRequirements: ['British'], // Elena is Canadian -> MUST FAIL!
     }
-    const assessment = assessEligibility(ukOnlyScholarship, sampleProfile)
+    const assessment = assessEligibility(ukCitizenOnlyInCanada, sampleProfile)
     expect(assessment.status).toBe('not_eligible')
-    expect(assessment.failedCriteria.some((c) => c.type === 'residence_or_nationality')).toBe(true)
+    expect(assessment.satisfiedCriteria.some((c) => c.id === 'residence-check')).toBe(true)
+    expect(assessment.failedCriteria.some((c) => c.id === 'nationality-check')).toBe(true)
   })
 
-  it('handles need-based requirement evaluation', () => {
+  it('evaluates residency and nationality independently (matching nationality does NOT bypass residency restriction)', () => {
+    const canadianLivingInGermanyOnly: Scholarship = {
+      ...globalStemScholarship,
+      eligibleCountries: ['Germany'], // Elena lives in Canada -> MUST FAIL!
+      nationalityRequirements: ['Canadian'], // Matches Elena's nationality
+    }
+    const assessment = assessEligibility(canadianLivingInGermanyOnly, sampleProfile)
+    expect(assessment.status).toBe('not_eligible')
+    expect(assessment.failedCriteria.some((c) => c.id === 'residence-check')).toBe(true)
+    expect(assessment.satisfiedCriteria.some((c) => c.id === 'nationality-check')).toBe(true)
+  })
+
+  // REGRESSION TEST 2: Tri-State handling for financial need
+  it('handles tri-state financial need: true is satisfied, false is failed, undefined is missing_info', () => {
     const needScholarship: Scholarship = {
       ...globalStemScholarship,
       financialRequirement: {
@@ -125,14 +142,97 @@ describe('eligibilityEngine', () => {
         description: 'Must demonstrate financial hardship',
       },
     }
-    const assessmentNeedMet = assessEligibility(needScholarship, sampleProfile)
-    expect(assessmentNeedMet.status).toBe('strong_match')
 
-    const assessmentNoNeed = assessEligibility(needScholarship, {
+    // 1. Explicit true -> satisfied
+    const resTrue = assessEligibility(needScholarship, { ...sampleProfile, financialNeed: true })
+    expect(resTrue.satisfiedCriteria.some((c) => c.id === 'financial-need')).toBe(true)
+    expect(resTrue.failedCriteria.some((c) => c.id === 'financial-need')).toBe(false)
+
+    // 2. Explicit false -> failed
+    const resFalse = assessEligibility(needScholarship, { ...sampleProfile, financialNeed: false })
+    expect(resFalse.failedCriteria.some((c) => c.id === 'financial-need')).toBe(true)
+    expect(resFalse.status).toBe('not_eligible')
+
+    // 3. Undefined / unknown -> missing_info
+    const resUndefined = assessEligibility(needScholarship, {
       ...sampleProfile,
-      financialNeed: false,
+      financialNeed: undefined as unknown as boolean,
     })
-    expect(assessmentNoNeed.status).toBe('not_eligible')
-    expect(assessmentNoNeed.failedCriteria.some((c) => c.type === 'financial_need')).toBe(true)
+    expect(resUndefined.missingInformation.some((c) => c.id === 'financial-need')).toBe(true)
+    expect(resUndefined.failedCriteria.some((c) => c.id === 'financial-need')).toBe(false)
+    expect(resUndefined.status).toBe('potential_match')
+  })
+
+  // REGRESSION TEST 3: Tri-State handling for first generation
+  it('handles tri-state first generation: true is satisfied, false is failed, undefined is missing_info', () => {
+    const firstGenScholarship: Scholarship = {
+      ...globalStemScholarship,
+      requiresFirstGen: true,
+    }
+
+    // 1. Explicit true -> satisfied
+    const resTrue = assessEligibility(firstGenScholarship, { ...sampleProfile, firstGeneration: true })
+    expect(resTrue.satisfiedCriteria.some((c) => c.id === 'first-gen')).toBe(true)
+
+    // 2. Explicit false -> failed
+    const resFalse = assessEligibility(firstGenScholarship, { ...sampleProfile, firstGeneration: false })
+    expect(resFalse.failedCriteria.some((c) => c.id === 'first-gen')).toBe(true)
+    expect(resFalse.status).toBe('not_eligible')
+
+    // 3. Undefined / unknown -> missing_info
+    const resUndefined = assessEligibility(firstGenScholarship, {
+      ...sampleProfile,
+      firstGeneration: undefined as unknown as boolean,
+    })
+    expect(resUndefined.missingInformation.some((c) => c.id === 'first-gen')).toBe(true)
+    expect(resUndefined.status).toBe('potential_match')
+  })
+
+  // REGRESSION TEST 4: Handle 'none' grading scale explicitly without artificial conversion
+  it('handles none grading scale explicitly without converting to artificial GPA or percentage', () => {
+    const noneScaleProfile: StudentProfile = {
+      ...sampleProfile,
+      academicScore: {
+        value: 0,
+        scale: 'none',
+        label: 'Ungraded Coursework',
+      },
+    }
+    const assessment = assessEligibility(globalStemScholarship, noneScaleProfile)
+    expect(assessment.status).toBe('potential_match')
+    const scoreItem = assessment.missingInformation.find((m) => m.type === 'academic_score')
+    expect(scoreItem).toBeDefined()
+    expect(scoreItem?.message).toContain('non-numerical grading system ("None")')
+  })
+
+  // REGRESSION TEST 5: Comparing incompatible grading scales requests manual verification
+  it('marks incompatible grading scales as missing_info for manual verification rather than assuming universal conversion', () => {
+    const percentageProfile: StudentProfile = {
+      ...sampleProfile,
+      academicScore: {
+        value: 88,
+        scale: 'percentage',
+        label: '88%',
+      },
+    }
+    // Scholarship strictly specifies gpa_4
+    const assessment = assessEligibility(globalStemScholarship, percentageProfile)
+    expect(assessment.status).toBe('potential_match')
+    const scoreItem = assessment.missingInformation.find((m) => m.id === 'academic-score')
+    expect(scoreItem).toBeDefined()
+    expect(scoreItem?.message).toContain('Grading scale mismatch')
+  })
+
+  // REGRESSION TEST 6: Optional study destination failure does not produce contradictory strong match
+  it('ensures optional study destination failure produces potential_match rather than contradictory strong match', () => {
+    const swedenOnlyDestination: Scholarship = {
+      ...globalStemScholarship,
+      eligibleDestinations: ['Sweden'], // Elena's preferred destinations are Canada & Germany
+    }
+    const assessment = assessEligibility(swedenOnlyDestination, sampleProfile)
+    expect(assessment.status).toBe('potential_match')
+    expect(assessment.failedCriteria.some((c) => c.id === 'destination' && !c.isMandatory)).toBe(true)
+    expect(assessment.matchScore).toBeLessThan(90)
+    expect(assessment.summaryRationale).toContain('optional preferences')
   })
 })

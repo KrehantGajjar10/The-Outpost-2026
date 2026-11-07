@@ -1,6 +1,9 @@
-import type { Scholarship } from '../types/scholarship'
+import type { Scholarship, ScholarshipRequirementItem } from '../types/scholarship'
 
-export const DEMO_SCHOLARSHIPS: Scholarship[] = [
+const RAW_DEMO_SCHOLARSHIPS: Omit<
+  Scholarship,
+  'amount' | 'amountFormatted' | 'description' | 'minGpa' | 'isRenewable' | 'requirements'
+>[] = [
   {
     id: 'sch-horizon-stem-2026',
     title: 'Horizon Women in STEM Leadership Grant',
@@ -45,6 +48,7 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'stem',
     categoryLabel: 'STEM & Computing',
     isSampleData: true,
+    status: 'in_progress',
     currentStage: 'Final Review & Portfolio Upload',
   },
   {
@@ -89,6 +93,7 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'community',
     categoryLabel: 'Civic Leadership & Policy',
     isSampleData: true,
+    status: 'in_progress',
     currentStage: 'Pending Verification Letter',
   },
   {
@@ -134,6 +139,7 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'stem',
     categoryLabel: 'Computer Science & Engineering',
     isSampleData: true,
+    status: 'in_progress',
     currentStage: 'Drafting Architecture Paper',
   },
   {
@@ -179,6 +185,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'stem',
     categoryLabel: 'Environmental & Clean Tech',
     isSampleData: true,
+    status: 'submitted',
+    currentStage: 'Application Submitted — Under Review',
   },
   {
     id: 'sch-commonwealth-postgrad-2026',
@@ -223,6 +231,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'humanities',
     categoryLabel: 'Humanities & Legal Studies',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Opportunity Identified',
   },
   {
     id: 'sch-beacon-firstgen-2026',
@@ -267,6 +277,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'first-gen',
     categoryLabel: 'First-Generation Scholars',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Saved for Early Review',
   },
   {
     id: 'sch-maple-innovators-2026',
@@ -310,6 +322,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'stem',
     categoryLabel: 'Applied Sciences & Engineering',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Application Window Open',
   },
   {
     id: 'sch-nordic-sustainability-2027',
@@ -353,6 +367,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'stem',
     categoryLabel: 'Sustainability & Materials',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Application Window Open',
   },
   {
     id: 'sch-singapore-digital-2026',
@@ -397,6 +413,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'stem',
     categoryLabel: 'Digital Inclusion & HCI',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Application Window Open',
   },
   {
     id: 'sch-global-health-2027',
@@ -441,6 +459,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'healthcare',
     categoryLabel: 'Healthcare & Biomedical',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Application Window Open',
   },
   {
     id: 'sch-indopacific-access-2026',
@@ -485,6 +505,8 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'need-based',
     categoryLabel: 'Need-Based Aid',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Application Window Open',
   },
   {
     id: 'sch-expired-sample-2026',
@@ -522,5 +544,30 @@ export const DEMO_SCHOLARSHIPS: Scholarship[] = [
     category: 'merit',
     categoryLabel: 'Academic Merit',
     isSampleData: true,
+    status: 'recommended',
+    currentStage: 'Deadline Concluded',
   },
 ]
+
+export const DEMO_SCHOLARSHIPS: Scholarship[] = RAW_DEMO_SCHOLARSHIPS.map((raw) => {
+  const isSubmitted = raw.status === 'submitted'
+  const isInProgress = raw.status === 'in_progress'
+
+  const requirements: ScholarshipRequirementItem[] = raw.requiredDocuments.map((doc, idx) => ({
+    id: `${raw.id}-req-${idx + 1}`,
+    label: doc,
+    completed: isSubmitted ? true : isInProgress ? idx < 2 : false,
+  }))
+
+  return {
+    ...raw,
+    amount: raw.fundingAmount,
+    amountFormatted: raw.formattedAmount,
+    description: raw.shortDescription,
+    minGpa: raw.academicRequirement?.minScore,
+    isRenewable: raw.awardType === 'renewable' || raw.awardType === 'annual',
+    requirements,
+  }
+})
+
+export const MOCK_SCHOLARSHIPS = DEMO_SCHOLARSHIPS

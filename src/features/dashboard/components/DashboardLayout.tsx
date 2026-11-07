@@ -12,7 +12,8 @@ import {
   User,
   Search,
 } from 'lucide-react'
-import { DEMO_STUDENT_PROFILE } from '../data/mockStudentProfile'
+import { profileService, PROFILE_CHANGED_EVENT } from '../../profile/services/profileService'
+import type { StudentProfile } from '../../profile/types/profile'
 import { NotificationPanel } from './NotificationPanel'
 import type { DashboardNotification } from '../types/dashboard'
 
@@ -25,6 +26,7 @@ interface DashboardLayoutProps {
   onSelectScholarshipById?: (id: string) => void
   activeSection: string
   onSectionChange: (section: string) => void
+  profile?: StudentProfile
 }
 
 export function DashboardLayout({
@@ -36,9 +38,31 @@ export function DashboardLayout({
   onSelectScholarshipById,
   activeSection,
   onSectionChange,
+  profile: propProfile,
 }: DashboardLayoutProps) {
+  const [internalProfile, setInternalProfile] = useState<StudentProfile>(() => profileService.getProfile())
+  const profile = propProfile || internalProfile
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+
+  useEffect(() => {
+    const handleProfileChange = (e: Event) => {
+      const customEvent = e as CustomEvent<StudentProfile>
+      if (customEvent.detail) {
+        setInternalProfile(customEvent.detail)
+      }
+    }
+    window.addEventListener(PROFILE_CHANGED_EVENT, handleProfileChange)
+    return () => window.removeEventListener(PROFILE_CHANGED_EVENT, handleProfileChange)
+  }, [])
+
+  const initials = (profile.fullName || 'Student')
+    .split(' ')
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'ST'
 
   // Close drawer on escape key
   useEffect(() => {
@@ -184,19 +208,19 @@ export function DashboardLayout({
         >
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-forest-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
-              ER
+              {initials}
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-bold text-white truncate group-hover:text-emerald-300">
-                {DEMO_STUDENT_PROFILE.fullName}
+                {profile.fullName}
               </p>
               <p className="text-[10px] text-forest-200 truncate">
-                GPA {DEMO_STUDENT_PROFILE.gpa.toFixed(2)} • Year 3
+                {profile.academicScore?.label || `${profile.academicScore?.value} (${profile.academicScore?.scale})`} • {profile.academicYear || profile.educationLevel}
               </p>
             </div>
           </div>
           <div className="pt-1.5 border-t border-forest-800 flex items-center justify-between text-[10px] text-forest-300">
-            <span>{DEMO_STUDENT_PROFILE.institution}</span>
+            <span className="truncate max-w-30">{profile.currentInstitution}</span>
             <span className="font-mono text-emerald-400">Edit Profile →</span>
           </div>
         </Link>
@@ -268,14 +292,14 @@ export function DashboardLayout({
               title="View & Edit Student Profile"
             >
               <div className="w-8 h-8 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center font-bold text-xs shadow-xs">
-                ER
+                {initials}
               </div>
               <div className="hidden sm:block text-left">
                 <p className="text-xs font-bold text-forest-900 leading-none">
-                  {DEMO_STUDENT_PROFILE.preferredName}
+                  {profile.preferredName || profile.fullName.split(' ')[0]}
                 </p>
                 <p className="text-[10px] text-warm-500 leading-none mt-1">
-                  Demo Profile
+                  Active Profile
                 </p>
               </div>
             </Link>
@@ -363,9 +387,9 @@ export function DashboardLayout({
 
               {/* Mobile Student Profile Badge */}
               <div className="p-3 rounded-xl bg-forest-950 border border-forest-700">
-                <p className="text-xs font-bold text-white">{DEMO_STUDENT_PROFILE.fullName}</p>
+                <p className="text-xs font-bold text-white">{profile.fullName}</p>
                 <p className="text-[10px] text-forest-200 mt-0.5">
-                  {DEMO_STUDENT_PROFILE.institution} • GPA {DEMO_STUDENT_PROFILE.gpa}
+                  {profile.currentInstitution} • {profile.academicScore?.label || profile.academicScore?.value}
                 </p>
               </div>
             </div>

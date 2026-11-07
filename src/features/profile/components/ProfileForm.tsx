@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import type { StudentProfile, AcademicScoreScale } from '../types/profile'
 import type { EducationLevel } from '../../scholarships/types/scholarship'
 import { profileService } from '../services/profileService'
+import { useReducedMotion } from '../../../hooks/useReducedMotion'
 import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
 import {
@@ -11,6 +12,7 @@ import {
   Award,
   DollarSign,
   CheckCircle2,
+  AlertCircle,
   RotateCcw,
   Sparkles,
   Info,
@@ -23,7 +25,9 @@ interface ProfileFormProps {
 export function ProfileForm({ onProfileUpdated }: ProfileFormProps) {
   const [profile, setProfile] = useState<StudentProfile>(() => profileService.getProfile())
   const [savedSuccess, setSavedSuccess] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     const handleProfileChange = (e: Event) => {
@@ -96,13 +100,28 @@ export function ProfileForm({ onProfileUpdated }: ProfileFormProps) {
       return
     }
 
-    profileService.saveProfile(profile)
-    setSavedSuccess(true)
-    onProfileUpdated?.(profile)
+    const ok = profileService.saveProfile(profile)
+    if (ok) {
+      setSavedSuccess(true)
+      setSaveError(null)
+      onProfileUpdated?.(profile)
 
-    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+      }
+
+      setTimeout(() => {
+        setSavedSuccess(false)
+      }, 3500)
+    } else {
       setSavedSuccess(false)
-    }, 3500)
+      setSaveError(
+        'Failed to save student profile. Please check browser storage quotas or permissions.',
+      )
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+      }
+    }
   }
 
   const handleReset = () => {
@@ -110,7 +129,13 @@ export function ProfileForm({ onProfileUpdated }: ProfileFormProps) {
       const reset = profileService.resetProfile()
       setProfile(reset)
       setSavedSuccess(true)
+      setSaveError(null)
       onProfileUpdated?.(reset)
+
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+      }
+
       setTimeout(() => setSavedSuccess(false), 3000)
     }
   }
@@ -133,13 +158,26 @@ export function ProfileForm({ onProfileUpdated }: ProfileFormProps) {
       {savedSuccess && (
         <div
           role="status"
-          className="p-4 rounded-xl bg-forest-50 border border-emerald-200 text-forest-900 flex items-center justify-between gap-3 text-sm animate-in fade-in"
+          className="p-4 rounded-xl bg-forest-50 border border-emerald-200 text-forest-900 flex items-center justify-between gap-3 text-sm transition-opacity"
         >
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <p className="font-semibold">
               Profile saved successfully! Eligibility matching has been refreshed.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Save Error Alert */}
+      {saveError && (
+        <div
+          role="alert"
+          className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 flex items-center justify-between gap-3 text-sm transition-opacity"
+        >
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <p className="font-semibold">{saveError}</p>
           </div>
         </div>
       )}
