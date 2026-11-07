@@ -2,14 +2,27 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { Scholarship, ScholarshipCategory } from '../features/scholarships/types/scholarship'
 import type { DashboardMetrics, DashboardNotification, ScholarshipFilters } from '../features/dashboard/types/dashboard'
 import { INITIAL_DEMO_SCHOLARSHIPS } from '../features/dashboard/data/mockScholarships'
-import { INITIAL_DEMO_NOTIFICATIONS } from '../features/dashboard/data/mockNotifications'
 import { savedService, SAVED_CHANGED_EVENT } from '../features/saved/services/savedService'
+import {
+  applicationService,
+  APPLICATION_CHANGED_EVENT,
+} from '../features/applications/services/applicationService'
+import type { TrackedApplication } from '../features/applications/types/application'
+import {
+  notificationService,
+  NOTIFICATIONS_CHANGED_EVENT,
+} from '../services/notificationService'
 import { formatCurrency, calculateDaysRemaining, getUrgencyLevel } from '../lib/utils'
 
 export function useScholarshipPipeline() {
   const [scholarships] = useState(INITIAL_DEMO_SCHOLARSHIPS)
   const [savedIds, setSavedIds] = useState<string[]>(() => savedService.getSavedIds())
-  const [notifications, setNotifications] = useState<DashboardNotification[]>(INITIAL_DEMO_NOTIFICATIONS)
+  const [applications, setApplications] = useState<TrackedApplication[]>(() =>
+    applicationService.getApplications(),
+  )
+  const [notifications, setNotifications] = useState<DashboardNotification[]>(() =>
+    notificationService.getNotifications(),
+  )
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null)
   const [filters, setFilters] = useState<ScholarshipFilters>({
     searchQuery: '',
@@ -18,7 +31,7 @@ export function useScholarshipPipeline() {
     urgency: 'all',
   })
 
-  // Synchronize saved state with localStorage
+  // Synchronize saved state, applications, and notifications with localStorage
   useEffect(() => {
     const handleSavedChange = (e: Event) => {
       const customEvent = e as CustomEvent<string[]>
@@ -26,9 +39,35 @@ export function useScholarshipPipeline() {
         setSavedIds(customEvent.detail)
       }
     }
+
+    const handleApplicationChange = (e: Event) => {
+      const customEvent = e as CustomEvent<TrackedApplication[]>
+      if (customEvent.detail) {
+        setApplications(customEvent.detail)
+        notificationService.syncDeadlineNotifications(customEvent.detail)
+      }
+    }
+
+    const handleNotificationChange = (e: Event) => {
+      const customEvent = e as CustomEvent<DashboardNotification[]>
+      if (customEvent.detail) {
+        setNotifications(customEvent.detail)
+      }
+    }
+
     window.addEventListener(SAVED_CHANGED_EVENT, handleSavedChange)
-    return () => window.removeEventListener(SAVED_CHANGED_EVENT, handleSavedChange)
-  }, [])
+    window.addEventListener(APPLICATION_CHANGED_EVENT, handleApplicationChange)
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, handleNotificationChange)
+
+    // Initial check for upcoming / overdue deadlines
+    notificationService.syncDeadlineNotifications(applications)
+
+    return () => {
+      window.removeEventListener(SAVED_CHANGED_EVENT, handleSavedChange)
+      window.removeEventListener(APPLICATION_CHANGED_EVENT, handleApplicationChange)
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, handleNotificationChange)
+    }
+  }, [applications])
 
   // Toggle saved bookmark for a scholarship without mutating application status
   const toggleSaveScholarship = useCallback((id: string) => {
@@ -38,28 +77,46 @@ export function useScholarshipPipeline() {
 
   // Mark a notification as read
   const markNotificationRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    )
+    notificationService.markAsRead(id)
+    setNotifications(notificationService.getNotifications())
   }, [])
 
   const markAllNotificationsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    notificationService.markAllAsRead()
+    setNotifications(notificationService.getNotifications())
   }, [])
 
-  // Map scholarships with real-time dynamic deadline calculation and saved status
+  // Map scholarships with real-time dynamic deadline calculation, saved status, and application status
   const dynamicScholarships = useMemo(() => {
+    const appMap = new Map(applications.map((a) => [a.scholarshipId, a]))
+
     return scholarships.map((sch) => {
-      const days = calculateDaysRemaining(sch.deadline)
+      const app = appMap.get(sch.id)
+      const effectiveDeadline = app?.targetSubmissionDate || sch.deadline
+      const days = calculateDaysRemaining(effectiveDeadline)
       const isSaved = savedIds.includes(sch.id)
+
+      // When tracked, reflect dynamic requirements checklist from user application
+      const requirements = app
+        ? app.documents.map((d) => ({
+            id: d.id,
+            label: d.title,
+            completed: d.status === 'ready',
+          }))
+        : sch.requirements
+
       return {
         ...sch,
+        deadline: effectiveDeadline,
         daysRemaining: days,
         urgency: getUrgencyLevel(days),
         isSaved,
+        status: app ? (app.status as Scholarship['status']) : sch.status,
+        currentStage: app?.customStageLabel || sch.currentStage,
+        requirements,
       }
     })
-  }, [scholarships, savedIds])
+  }, [scholarships, savedIds, applications])
 
   // Filtered scholarships
   const filteredScholarships = useMemo(() => {
@@ -93,27 +150,30 @@ export function useScholarshipPipeline() {
     })
   }, [dynamicScholarships, filters])
 
-  // Grounded metrics computed dynamically from current saved/tracked items
+  // Grounded metrics computed dynamically from current saved and tracked applications
   const metrics: DashboardMetrics = useMemo(() => {
-    const inProgressApplications = dynamicScholarships.filter(
-      (s) => s.status === 'in_progress',
-    )
-    const submittedApplications = dynamicScholarships.filter(
-      (s) => s.status === 'submitted',
-    )
+    const inProgressApps = applications.filter((a) => a.status === 'in_progress')
+    const submittedApps = applications.filter((a) => a.status === 'submitted')
+    const underReviewApps = applications.filter((a) => a.status === 'under_review')
+    const acceptedApps = applications.filter((a) => a.status === 'accepted')
     const bookmarkedOpportunities = dynamicScholarships.filter((s) => s.isSaved)
 
-    // Only include active deadlines (not expired)
+    // Active tracked deadlines (not expired, and not already completed/withdrawn)
     const activeTracked = dynamicScholarships
-      .filter((s) => (s.isSaved || s.status === 'in_progress') && s.daysRemaining !== undefined && s.daysRemaining >= 0)
+      .filter((s) => {
+        const isTracked = applications.some((a) => a.scholarshipId === s.id && a.status !== 'withdrawn' && a.status !== 'rejected')
+        return (s.isSaved || isTracked) && s.daysRemaining !== undefined && s.daysRemaining >= 0
+      })
       .sort((a, b) => (a.daysRemaining ?? 0) - (b.daysRemaining ?? 0))
 
     const within30Days = activeTracked.filter((s) => (s.daysRemaining ?? 0) <= 30)
 
     // Sum USD funding accurately without conflating different currencies
-    const usdTracked = dynamicScholarships.filter(
-      (s) => (s.isSaved || s.status === 'in_progress' || s.status === 'submitted') && s.currency === 'USD',
-    )
+    const usdTracked = dynamicScholarships.filter((s) => {
+      const isTracked = applications.some((a) => a.scholarshipId === s.id)
+      return (s.isSaved || isTracked) && s.currency === 'USD'
+    })
+
     const totalFundingUSD = usdTracked.reduce(
       (acc, curr) => acc + (curr.fundingAmount || curr.amount || 0),
       0,
@@ -123,15 +183,17 @@ export function useScholarshipPipeline() {
 
     return {
       totalSaved: bookmarkedOpportunities.length,
-      inProgressCount: inProgressApplications.length,
-      submittedCount: submittedApplications.length,
+      inProgressCount: inProgressApps.length,
+      submittedCount: submittedApps.length,
+      underReviewCount: underReviewApps.length,
+      acceptedCount: acceptedApps.length,
       upcomingDeadlinesCount: within30Days.length,
       totalPotentialFunding: totalFundingUSD,
       formattedPotentialFunding: formatCurrency(totalFundingUSD, 'USD'),
       nearestDeadlineDays: nearest ? (nearest.daysRemaining ?? 0) : 0,
       nearestScholarshipTitle: nearest ? nearest.title : 'None pending',
     }
-  }, [dynamicScholarships])
+  }, [dynamicScholarships, applications])
 
   const setCategoryFilter = useCallback((category: 'all' | ScholarshipCategory) => {
     setFilters((prev) => ({ ...prev, category }))
@@ -162,5 +224,6 @@ export function useScholarshipPipeline() {
     markNotificationRead,
     markAllNotificationsRead,
     savedIds,
+    applications,
   }
 }

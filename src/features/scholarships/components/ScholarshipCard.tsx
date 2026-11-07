@@ -3,6 +3,7 @@ import { UrgencyBadge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { EligibilityBadge } from '../../eligibility/components/EligibilityBadge'
 import { formatDisplayDate, calculateDaysRemaining, getUrgencyLevel } from '../../../lib/utils'
+import { applicationService } from '../../applications/services/applicationService'
 import type { Scholarship } from '../types/scholarship'
 import type { EligibilityAssessment } from '../../eligibility/types/eligibility'
 import { Building2, Calendar, Bookmark, ArrowUpRight, Globe, Layers } from 'lucide-react'
@@ -24,6 +25,7 @@ export function ScholarshipCard({
 }: ScholarshipCardProps) {
   const daysRemaining = calculateDaysRemaining(scholarship.deadline)
   const urgency = getUrgencyLevel(daysRemaining)
+  const isTracked = applicationService.isScholarshipTracked(scholarship.id)
 
   const awardTypeLabel =
     scholarship.awardType === 'renewable'
@@ -48,6 +50,12 @@ export function ScholarshipCard({
             </span>
             <span className="text-warm-300">•</span>
             <EligibilityBadge assessment={assessment} size="sm" />
+            {isTracked && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                <Layers className="w-3 h-3 text-emerald-600" />
+                In Pipeline
+              </span>
+            )}
           </div>
 
           <button

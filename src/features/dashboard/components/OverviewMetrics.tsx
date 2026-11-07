@@ -1,4 +1,5 @@
-import { Bookmark, Clock, DollarSign, Send } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Bookmark, Clock, DollarSign, Send, ArrowUpRight } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import type { DashboardMetrics } from '../types/dashboard'
 
@@ -22,10 +23,11 @@ export function OverviewMetrics({ metrics, onSelectMetric }: OverviewMetricsProp
       id: 'in_progress' as const,
       title: 'Applications In Progress',
       value: metrics.inProgressCount.toString(),
-      subtitle: 'Drafts, essays & letters pending',
+      subtitle: `${metrics.inProgressCount} active drafting • ${metrics.submittedCount || 0} submitted`,
       icon: <Send className="w-5 h-5 text-emerald-600" />,
-      badge: 'Active submissions',
+      badge: `${metrics.submittedCount || 0} submitted`,
       bgColor: 'bg-[#edfbf4]',
+      workspaceLink: '/applications?status=in_progress',
     },
     {
       id: 'deadlines' as const,
@@ -80,15 +82,28 @@ export function OverviewMetrics({ metrics, onSelectMetric }: OverviewMetricsProp
 
           <div className="pt-2 border-t border-warm-100 flex items-center justify-between text-[11px] text-warm-600">
             <span className="font-medium text-forest-700">{card.badge}</span>
-            {card.id !== 'funding' && onSelectMetric && (
-              <button
-                type="button"
-                onClick={() => onSelectMetric(card.id)}
-                className="hover:text-forest-900 underline cursor-pointer"
-              >
-                Filter list
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {'workspaceLink' in card && card.workspaceLink ? (
+                <Link
+                  to={card.workspaceLink}
+                  className="hover:text-forest-900 underline flex items-center gap-0.5 cursor-pointer font-medium"
+                >
+                  <span>Workspace</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              ) : (
+                card.id !== 'funding' &&
+                onSelectMetric && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectMetric(card.id)}
+                    className="hover:text-forest-900 underline cursor-pointer"
+                  >
+                    Filter list
+                  </button>
+                )
+              )}
+            </div>
           </div>
         </Card>
       ))}

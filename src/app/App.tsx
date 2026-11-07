@@ -16,6 +16,11 @@ const DiscoveryPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import('../features/profile/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
 )
+const ApplicationsPage = lazy(() =>
+  import('../features/applications/pages/ApplicationsPage').then((m) => ({
+    default: m.ApplicationsPage,
+  })),
+)
 const DashboardPage = lazy(() =>
   import('../features/dashboard/pages/DashboardPage').then((m) => ({
     default: m.DashboardPage,
@@ -97,6 +102,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/scholarships" element={<DiscoveryPage />} />
+          <Route path="/applications" element={<ApplicationsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/404" element={<NotFoundPage />} />

@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom'
 import { Modal } from '../../../components/ui/Modal'
 import { Badge, UrgencyBadge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { formatDisplayDate } from '../../../lib/utils'
 import { savedService } from '../../saved/services/savedService'
+import { applicationService } from '../../applications/services/applicationService'
 import type { Scholarship } from '../../scholarships/types/scholarship'
 import {
   Calendar,
@@ -14,6 +16,7 @@ import {
   Bookmark,
   ShieldCheck,
   GraduationCap,
+  Layers,
 } from 'lucide-react'
 
 interface ScholarshipDetailModalProps {
@@ -29,9 +32,20 @@ export function ScholarshipDetailModal({
   onClose,
   onToggleSave,
 }: ScholarshipDetailModalProps) {
+  const navigate = useNavigate()
   if (!scholarship) return null
 
   const isSaved = scholarship.isSaved ?? savedService.isSaved(scholarship.id)
+  const isTracked = applicationService.isScholarshipTracked(scholarship.id)
+
+  const handleTrackOrOpenWorkspace = () => {
+    let app = applicationService.getApplicationByScholarshipId(scholarship.id)
+    if (!app) {
+      app = applicationService.trackScholarship(scholarship.id, 'planning')
+    }
+    onClose()
+    navigate(`/applications?appId=${app.id}`)
+  }
 
   return (
     <Modal
@@ -180,15 +194,24 @@ export function ScholarshipDetailModal({
             <span>Simulated demonstration record for prototype evaluation.</span>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
             <Button
-              variant={isSaved ? 'secondary' : 'primary'}
+              variant={isSaved ? 'secondary' : 'outline'}
               size="md"
               onClick={() => onToggleSave(scholarship.id)}
               className="w-full sm:w-auto"
               icon={<Bookmark className="w-4 h-4" />}
             >
-              {isSaved ? 'Remove from Saved' : 'Save Scholarship'}
+              {isSaved ? 'Remove from Saved' : 'Save'}
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleTrackOrOpenWorkspace}
+              className="w-full sm:w-auto"
+              icon={<Layers className="w-4 h-4" />}
+            >
+              {isTracked ? 'Open Workspace' : 'Track Application'}
             </Button>
             <Button variant="outline" size="md" onClick={onClose} className="w-full sm:w-auto">
               Close

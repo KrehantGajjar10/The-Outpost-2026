@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Clock, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Button } from '../../../components/ui/Button'
@@ -17,7 +18,7 @@ export function DeadlinesTimeline({ scholarships, onSelectScholarship }: Deadlin
 
   return (
     <section id="deadlines" aria-label="Upcoming Deadlines Schedule" className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold tracking-tight text-forest-900">
@@ -31,6 +32,14 @@ export function DeadlinesTimeline({ scholarships, onSelectScholarship }: Deadlin
             Chronological milestone schedule derived from your active pipeline.
           </p>
         </div>
+
+        <Link
+          to="/applications"
+          className="text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-1 hover:underline shrink-0"
+        >
+          <span>Manage Workspace &amp; Checklists</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
 
       <div className="space-y-3">

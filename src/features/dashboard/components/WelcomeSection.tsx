@@ -1,4 +1,4 @@
-import { ArrowRight, Calendar, Sparkles, Compass } from 'lucide-react'
+import { ArrowRight, Calendar, Sparkles, Compass, Layers } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { DemoNotice } from '../../../components/shared/DemoNotice'
@@ -51,6 +51,16 @@ export function WelcomeSection({
 
           {/* Quick action triggers */}
           <div className="pt-2 flex flex-wrap items-center gap-3">
+            <Link to="/applications">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-emerald-400 text-forest-950 hover:bg-emerald-300 border-0 font-bold"
+                icon={<Layers className="w-3.5 h-3.5" />}
+              >
+                Applications Workspace ({metrics.inProgressCount})
+              </Button>
+            </Link>
             <Link to="/scholarships">
               <Button
                 variant="secondary"
@@ -58,14 +68,14 @@ export function WelcomeSection({
                 className="bg-emerald-50 text-forest-950 hover:bg-emerald-100 border-0"
                 icon={<Compass className="w-3.5 h-3.5 text-emerald-600" />}
               >
-                Find More Scholarships
+                Find Scholarships
               </Button>
             </Link>
             <Button
               variant="outline"
               size="sm"
               onClick={onJumpToDeadlines}
-              className="bg-forest-950/40 text-forest-950 hover:text-white border-forest-700 hover:bg-forest-950"
+              className="bg-forest-950/40 text-forest-100 hover:text-white border-forest-700 hover:bg-forest-950"
               icon={<Calendar className="w-3.5 h-3.5 text-emerald-400" />}
             >
               Upcoming Deadlines
@@ -74,11 +84,11 @@ export function WelcomeSection({
               variant="outline"
               size="sm"
               onClick={onFilterInProgress}
-              className="bg-forest-950/40 text-forest-950 hover:text-white border-forest-700 hover:bg-forest-950"
-              icon={<ArrowRight className="w-3.5 h-3.5" />}
+              className="bg-forest-950/40 text-forest-100 hover:text-white border-forest-700 hover:bg-forest-950"
+              icon={<ArrowRight className="w-3.5 h-3.5 text-emerald-400" />}
               iconPosition="right"
             >
-              Filter In-Progress ({metrics.inProgressCount})
+              Filter In-Progress
             </Button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { Search, Compass, User, LayoutDashboard, Bookmark, ArrowRight } from 'lucide-react'
+import { Search, Compass, User, LayoutDashboard, Bookmark, ArrowRight, Layers } from 'lucide-react'
 import { DEMO_SCHOLARSHIPS } from '../../features/scholarships/data/mockScholarships'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 
@@ -57,6 +57,12 @@ export function CommandPalette({ isOpen, onClose, onSelectScholarship }: Command
       path: '/scholarships',
       icon: <Compass className="w-4 h-4 text-forest-700" />,
       desc: 'Browse international opportunities and filter by eligibility',
+    },
+    {
+      title: 'Application Management Workspace',
+      path: '/applications',
+      icon: <Layers className="w-4 h-4 text-forest-700" />,
+      desc: 'Track checklists, document readiness, notes, and milestones',
     },
     {
       title: 'Bookmarked Opportunities',

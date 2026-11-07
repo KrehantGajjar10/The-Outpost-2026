@@ -18,6 +18,8 @@ export interface DashboardMetrics {
   totalSaved: number
   inProgressCount: number
   submittedCount?: number
+  underReviewCount?: number
+  acceptedCount?: number
   upcomingDeadlinesCount: number
   totalPotentialFunding: number
   formattedPotentialFunding: string

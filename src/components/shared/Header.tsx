@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Menu, X, ArrowRight, Compass, ShieldCheck, User } from 'lucide-react'
+import { Menu, X, ArrowRight, Compass, ShieldCheck, User, Layers } from 'lucide-react'
 import { Button } from '../ui/Button'
 
 export function Header() {
@@ -55,6 +55,13 @@ export function Header() {
           >
             <Compass className="w-4 h-4 text-forest-700" />
             <span>Discover</span>
+          </Link>
+          <Link
+            to="/applications"
+            className="hover:text-forest-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 rounded px-1 flex items-center gap-1.5"
+          >
+            <Layers className="w-4 h-4 text-forest-700" />
+            <span>Applications</span>
           </Link>
           <Link
             to="/profile"
@@ -125,6 +132,14 @@ export function Header() {
             >
               <Compass className="w-4 h-4 text-forest-700" />
               Discover Scholarships
+            </Link>
+            <Link
+              to="/applications"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-warm-200 hover:text-forest-900 transition-colors flex items-center gap-2"
+            >
+              <Layers className="w-4 h-4 text-forest-700" />
+              Application Workspace
             </Link>
             <Link
               to="/profile"

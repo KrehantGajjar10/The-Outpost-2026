@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   User,
   Search,
+  Layers,
 } from 'lucide-react'
 import { profileService, PROFILE_CHANGED_EVENT } from '../../profile/services/profileService'
 import type { StudentProfile } from '../../profile/types/profile'
@@ -179,6 +180,13 @@ export function DashboardLayout({
             >
               <Search className="w-4 h-4 text-emerald-400" />
               <span>Find Scholarships</span>
+            </Link>
+            <Link
+              to="/applications"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-forest-200 hover:bg-forest-950 hover:text-white transition-colors"
+            >
+              <Layers className="w-4 h-4 text-emerald-400" />
+              <span>Applications Workspace</span>
             </Link>
             <Link
               to="/profile"
@@ -361,6 +369,14 @@ export function DashboardLayout({
                     >
                       <Search className="w-4 h-4 text-emerald-400" />
                       <span>Find Scholarships</span>
+                    </Link>
+                    <Link
+                      to="/applications"
+                      onClick={() => setMobileDrawerOpen(false)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-forest-200 hover:bg-forest-800 hover:text-white transition-colors"
+                    >
+                      <Layers className="w-4 h-4 text-emerald-400" />
+                      <span>Applications Workspace</span>
                     </Link>
                     <Link
                       to="/profile"
