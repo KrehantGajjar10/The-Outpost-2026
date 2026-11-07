@@ -12,9 +12,9 @@ export function InsightsSection({ scholarships }: InsightsSectionProps) {
   // Compute category funding breakdown for saved/in_progress scholarships
   const insights = useMemo(() => {
     const savedOrActive = scholarships.filter(
-      (s) => s.status === 'saved' || s.status === 'in_progress',
+      (s) => s.isSaved || s.status === 'in_progress',
     )
-    const totalFunding = savedOrActive.reduce((acc, curr) => acc + curr.amount, 0)
+    const totalFunding = savedOrActive.reduce((acc, curr) => acc + (curr.fundingAmount || curr.amount || 0), 0)
 
     const categoryMap: Record<string, { label: string; amount: number; count: number }> = {}
 
@@ -26,7 +26,7 @@ export function InsightsSection({ scholarships }: InsightsSectionProps) {
           count: 0,
         }
       }
-      categoryMap[sch.category].amount += sch.amount
+      categoryMap[sch.category].amount += sch.fundingAmount || sch.amount || 0
       categoryMap[sch.category].count += 1
     }
 
@@ -40,7 +40,7 @@ export function InsightsSection({ scholarships }: InsightsSectionProps) {
 
     // Stage breakdown
     const stageCounts = {
-      saved: scholarships.filter((s) => s.status === 'saved').length,
+      saved: scholarships.filter((s) => s.isSaved).length,
       inProgress: scholarships.filter((s) => s.status === 'in_progress').length,
       submitted: scholarships.filter((s) => s.status === 'submitted').length,
     }
@@ -115,7 +115,7 @@ export function InsightsSection({ scholarships }: InsightsSectionProps) {
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-forest-700" />
                   <span className="font-medium text-warm-900">{cat.label}</span>
-                  <span className="text-[11px] text-warm-500">({cat.count} awards)</span>
+                  <span className="text-[11px] text-warm-500">({cat.count} scholarships)</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-semibold text-forest-900">

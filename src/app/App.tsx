@@ -2,8 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import { Providers } from './providers'
 import { LandingPage } from '../features/landing/pages/LandingPage'
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
+import { DiscoveryPage } from '../features/scholarships/pages/DiscoveryPage'
+import { ProfilePage } from '../features/profile/pages/ProfilePage'
 import { Button } from '../components/ui/Button'
-import { ArrowLeft, Home } from 'lucide-react'
+import { ArrowLeft, Home, Compass } from 'lucide-react'
 
 function NotFoundPage() {
   return (
@@ -16,10 +18,15 @@ function NotFoundPage() {
         <p className="text-sm text-warm-600">
           The scholarship portal page you are trying to visit does not exist or has moved.
         </p>
-        <div className="pt-2 flex items-center justify-center gap-3">
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
           <Link to="/">
             <Button variant="primary" size="sm" icon={<Home className="w-4 h-4" />}>
               Return Home
+            </Button>
+          </Link>
+          <Link to="/scholarships">
+            <Button variant="outline" size="sm" icon={<Compass className="w-4 h-4" />}>
+              Find Scholarships
             </Button>
           </Link>
           <Link to="/dashboard">
@@ -39,6 +46,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/scholarships" element={<DiscoveryPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="*" element={<Navigate to="/404" replace />} />

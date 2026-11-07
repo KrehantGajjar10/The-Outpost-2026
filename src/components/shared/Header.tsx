@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Menu, X, ArrowRight, Compass, ShieldCheck } from 'lucide-react'
+import { Menu, X, ArrowRight, Compass, ShieldCheck, User } from 'lucide-react'
 import { Button } from '../ui/Button'
 
 export function Header() {
@@ -34,7 +34,7 @@ export function Header() {
               <span className="font-bold text-xl tracking-tight text-forest-900">
                 GRANTLY
               </span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-50 text-forest-8000 border border-emerald-200">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-50 text-forest-800 border border-emerald-200">
                 Demo
               </span>
             </div>
@@ -46,31 +46,44 @@ export function Header() {
 
         {/* Desktop Navigation Links */}
         <nav
-          className="hidden md:flex items-center gap-8 text-sm font-medium text-warm-700"
+          className="hidden md:flex items-center gap-7 text-sm font-medium text-warm-700"
           aria-label="Main Navigation"
         >
+          <Link
+            to="/scholarships"
+            className="hover:text-forest-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 rounded px-1 flex items-center gap-1.5"
+          >
+            <Compass className="w-4 h-4 text-forest-700" />
+            <span>Discover</span>
+          </Link>
+          <Link
+            to="/profile"
+            className="hover:text-forest-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 rounded px-1 flex items-center gap-1.5"
+          >
+            <User className="w-4 h-4 text-forest-700" />
+            <span>Student Profile</span>
+          </Link>
           <a
-            href="#how-it-works"
+            href="/#how-it-works"
             className="hover:text-forest-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 rounded px-1"
           >
             How It Works
           </a>
           <a
-            href="#benefits"
+            href="/#benefits"
             className="hover:text-forest-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 rounded px-1"
           >
             Core Benefits
-          </a>
-          <a
-            href="#catalog"
-            className="hover:text-forest-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-700 rounded px-1"
-          >
-            Sample Opportunities
           </a>
         </nav>
 
         {/* Action Button & Demo Gateway */}
         <div className="hidden sm:flex items-center gap-3">
+          <Link to="/scholarships">
+            <Button variant="outline" size="md">
+              Find Scholarships
+            </Button>
+          </Link>
           <Link to="/dashboard">
             <Button
               variant="primary"
@@ -78,7 +91,7 @@ export function Header() {
               icon={<ArrowRight className="w-4 h-4" />}
               iconPosition="right"
             >
-              Launch Dashboard Demo
+              Dashboard Demo
             </Button>
           </Link>
         </div>
@@ -100,37 +113,50 @@ export function Header() {
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div
-          className="sm:hidden border-b border-warm-200 bg-warm-50 px-4 pt-3 pb-6 space-y-4 shadow-lg animate-in slide-in-from-top duration-200"
+          className="sm:hidden border-b border-warm-200 bg-warm-50 px-4 pt-3 pb-6 space-y-4 shadow-lg transition-all"
           role="dialog"
           aria-label="Mobile Navigation Menu"
         >
           <nav className="flex flex-col space-y-3 text-base font-medium text-warm-700">
-            <a
-              href="#how-it-works"
+            <Link
+              to="/scholarships"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg hover:bg-warm-200 hover:text-forest-900 transition-colors flex items-center gap-2"
             >
               <Compass className="w-4 h-4 text-forest-700" />
+              Discover Scholarships
+            </Link>
+            <Link
+              to="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-warm-200 hover:text-forest-900 transition-colors flex items-center gap-2"
+            >
+              <User className="w-4 h-4 text-forest-700" />
+              Student Profile &amp; Eligibility
+            </Link>
+            <a
+              href="/#how-it-works"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-warm-200 hover:text-forest-900 transition-colors flex items-center gap-2"
+            >
+              <ShieldCheck className="w-4 h-4 text-forest-700" />
               How It Works
             </a>
             <a
-              href="#benefits"
+              href="/#benefits"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-lg hover:bg-warm-200 hover:text-forest-900 transition-colors flex items-center gap-2"
             >
               <ShieldCheck className="w-4 h-4 text-forest-700" />
               Core Benefits
             </a>
-            <a
-              href="#catalog"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-warm-200 hover:text-forest-900 transition-colors flex items-center gap-2"
-            >
-              <Compass className="w-4 h-4 text-forest-700" />
-              Sample Opportunities
-            </a>
           </nav>
-          <div className="pt-2 border-t border-warm-200">
+          <div className="pt-2 border-t border-warm-200 flex flex-col gap-2">
+            <Link to="/scholarships" onClick={() => setMobileMenuOpen(false)} className="w-full block">
+              <Button variant="outline" size="md" className="w-full justify-center">
+                Search Scholarships
+              </Button>
+            </Link>
             <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full block">
               <Button
                 variant="primary"

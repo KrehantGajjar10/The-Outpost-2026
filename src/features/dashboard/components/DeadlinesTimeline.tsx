@@ -10,10 +10,10 @@ interface DeadlinesTimelineProps {
 }
 
 export function DeadlinesTimeline({ scholarships, onSelectScholarship }: DeadlinesTimelineProps) {
-  // Sort saved or in_progress by deadline asc
+  // Sort active bookmarked or in_progress scholarships by deadline asc (excluding expired)
   const trackedDeadlines = scholarships
-    .filter((s) => s.status === 'in_progress' || s.status === 'saved')
-    .sort((a, b) => a.daysRemaining - b.daysRemaining)
+    .filter((s) => (s.isSaved || s.status === 'in_progress') && (s.daysRemaining ?? 0) >= 0)
+    .sort((a, b) => (a.daysRemaining ?? 0) - (b.daysRemaining ?? 0))
 
   return (
     <section id="deadlines" aria-label="Upcoming Deadlines Schedule" className="space-y-4">
@@ -35,8 +35,8 @@ export function DeadlinesTimeline({ scholarships, onSelectScholarship }: Deadlin
 
       <div className="space-y-3">
         {trackedDeadlines.map((item) => {
-          const completedReqs = item.requirements.filter((r) => r.completed).length
-          const totalReqs = item.requirements.length
+          const completedReqs = (item.requirements ?? []).filter((r) => r.completed).length
+          const totalReqs = item.requirements?.length ?? item.requiredDocuments?.length ?? 0
           const isUrgent = item.urgency === 'urgent'
 
           return (
@@ -72,7 +72,7 @@ export function DeadlinesTimeline({ scholarships, onSelectScholarship }: Deadlin
                       </span>
                       <span className="text-warm-300">•</span>
                       <span className="text-xs font-medium text-warm-500">
-                        {item.amountFormatted.split(' ')[0]}
+                        {(item.formattedAmount || item.amountFormatted || '').split(' ')[0]}
                       </span>
                     </div>
 

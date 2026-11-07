@@ -2,6 +2,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { Badge, UrgencyBadge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { formatDisplayDate } from '../../../lib/utils'
+import { savedService } from '../../saved/services/savedService'
 import type { Scholarship } from '../../scholarships/types/scholarship'
 import {
   Calendar,
@@ -30,7 +31,7 @@ export function ScholarshipDetailModal({
 }: ScholarshipDetailModalProps) {
   if (!scholarship) return null
 
-  const isSaved = scholarship.status === 'saved' || scholarship.status === 'in_progress'
+  const isSaved = scholarship.isSaved ?? savedService.isSaved(scholarship.id)
 
   return (
     <Modal
@@ -46,17 +47,22 @@ export function ScholarshipDetailModal({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-2xl font-bold tracking-tight text-white">
-                {scholarship.amountFormatted.split(' ')[0]}
+                {(scholarship.formattedAmount || scholarship.amountFormatted || '').split(' ')[0]}
               </span>
               <span className="text-xs text-forest-200 bg-forest-950 px-2 py-0.5 rounded border border-forest-700">
-                {scholarship.isRenewable ? 'Renewable Award' : 'One-time Grant'}
+                {scholarship.isRenewable || scholarship.awardType === 'renewable' ? 'Renewable Award' : 'One-time Grant'}
               </span>
             </div>
-            <p className="text-xs text-forest-200 mt-1">{scholarship.renewalTerms}</p>
+            {scholarship.renewalTerms && (
+              <p className="text-xs text-forest-200 mt-1">{scholarship.renewalTerms}</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <UrgencyBadge urgency={scholarship.urgency} daysRemaining={scholarship.daysRemaining} />
+            <UrgencyBadge
+              urgency={scholarship.urgency ?? 'normal'}
+              daysRemaining={scholarship.daysRemaining ?? 0}
+            />
           </div>
         </div>
 
@@ -65,10 +71,12 @@ export function ScholarshipDetailModal({
           <div className="p-3 rounded-xl bg-warm-50 border border-warm-200 space-y-1">
             <span className="text-[11px] font-medium text-warm-500 flex items-center gap-1">
               <Award className="w-3.5 h-3.5 text-forest-700" />
-              Minimum GPA
+              Academic Standard
             </span>
             <p className="text-sm font-bold text-forest-900">
-              {scholarship.minGpa.toFixed(1)} Cumulative
+              {scholarship.minGpa
+                ? `${scholarship.minGpa.toFixed(1)} Cumulative`
+                : scholarship.academicRequirement?.description || 'Open / No Minimum'}
             </p>
           </div>
 
@@ -78,7 +86,7 @@ export function ScholarshipDetailModal({
               Target Academic Level
             </span>
             <p className="text-sm font-bold text-forest-900 truncate">
-              {scholarship.academicLevel}
+              {scholarship.academicLevel || (scholarship.educationLevels ? scholarship.educationLevels.join(', ') : 'All Levels')}
             </p>
           </div>
 
@@ -99,47 +107,49 @@ export function ScholarshipDetailModal({
             Overview & Scope
           </h4>
           <p className="text-sm text-warm-700 leading-relaxed bg-warm-100/50 p-3.5 rounded-xl border border-warm-200">
-            {scholarship.description}
+            {scholarship.detailedDescription || scholarship.shortDescription || scholarship.description || ''}
           </p>
         </div>
 
         {/* Requirements Checklist */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-warm-600">
-              Required Application Checklist
-            </h4>
-            <span className="text-xs font-semibold text-forest-700">
-              {scholarship.requirements.filter((r) => r.completed).length} of{' '}
-              {scholarship.requirements.length} requirements ready
-            </span>
-          </div>
+        {scholarship.requirements && scholarship.requirements.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-warm-600">
+                Required Application Checklist
+              </h4>
+              <span className="text-xs font-semibold text-forest-700">
+                {scholarship.requirements.filter((r) => r.completed).length} of{' '}
+                {scholarship.requirements.length} requirements ready
+              </span>
+            </div>
 
-          <div className="space-y-2">
-            {scholarship.requirements.map((req) => (
-              <div
-                key={req.id}
-                className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${
-                  req.completed
-                    ? 'bg-emerald-50/60 border-emerald-200 text-[#065f46]'
-                    : 'bg-white border-warm-300 text-warm-700'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  {req.completed ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-warm-400 shrink-0" />
-                  )}
-                  <span className={req.completed ? 'font-medium' : ''}>{req.label}</span>
+            <div className="space-y-2">
+              {scholarship.requirements.map((req) => (
+                <div
+                  key={req.id}
+                  className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+                    req.completed
+                      ? 'bg-emerald-50/60 border-emerald-200 text-[#065f46]'
+                      : 'bg-white border-warm-300 text-warm-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    {req.completed ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-warm-400 shrink-0" />
+                    )}
+                    <span className={req.completed ? 'font-medium' : ''}>{req.label}</span>
+                  </div>
+                  <Badge variant={req.completed ? 'success' : 'neutral'} size="sm">
+                    {req.completed ? 'Ready' : 'Pending Action'}
+                  </Badge>
                 </div>
-                <Badge variant={req.completed ? 'success' : 'neutral'} size="sm">
-                  {req.completed ? 'Ready' : 'Pending Action'}
-                </Badge>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Essay Prompt if applicable */}
         {scholarship.essayPrompt && (
@@ -178,7 +188,7 @@ export function ScholarshipDetailModal({
               className="w-full sm:w-auto"
               icon={<Bookmark className="w-4 h-4" />}
             >
-              {isSaved ? 'Remove from Pipeline' : 'Save to Pipeline'}
+              {isSaved ? 'Remove from Saved' : 'Save Scholarship'}
             </Button>
             <Button variant="outline" size="md" onClick={onClose} className="w-full sm:w-auto">
               Close

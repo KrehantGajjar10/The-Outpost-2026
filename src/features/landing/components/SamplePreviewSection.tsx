@@ -41,25 +41,26 @@ export function SamplePreviewSection() {
               Explore realistic scholarship records.
             </h2>
             <p className="text-base text-warm-600">
-              Every scholarship record features verified award values, clear renewal conditions, and structured requirement checklists.
+              Every scholarship record features structured award values, clear renewal conditions, and illustrative requirement checklists.
             </p>
           </div>
 
-          <Link to="/dashboard">
-            <Button
-              variant="secondary"
-              size="md"
-              icon={<ArrowRight className="w-4 h-4" />}
-              iconPosition="right"
-            >
-              View Full Pipeline in Dashboard
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/scholarships">
+              <Button
+                variant="primary"
+                size="md"
+                icon={<ArrowRight className="w-4 h-4" />}
+                iconPosition="right"
+              >
+                Explore Full Directory
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Category Filter Chips */}
         <div
-          role="tablist"
           aria-label="Filter sample scholarships by field"
           className="flex flex-wrap items-center gap-2"
         >
@@ -67,8 +68,7 @@ export function SamplePreviewSection() {
             <button
               key={cat.key}
               type="button"
-              role="tab"
-              aria-selected={selectedCategory === cat.key}
+              aria-pressed={selectedCategory === cat.key}
               onClick={() => setSelectedCategory(cat.key)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 selectedCategory === cat.key
@@ -106,16 +106,16 @@ export function SamplePreviewSection() {
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-lg font-bold text-forest-900">
-                      {item.amountFormatted.split(' ')[0]}
+                      {(item.formattedAmount || item.amountFormatted || '').split(' ')[0]}
                     </span>
                     <p className="text-[10px] text-warm-500 font-medium">
-                      {item.isRenewable ? 'Renewable' : 'One-time'}
+                      {item.isRenewable || item.awardType === 'renewable' ? 'Renewable' : 'One-time'}
                     </p>
                   </div>
                 </div>
 
                 <p className="text-sm text-warm-600 line-clamp-2 leading-relaxed">
-                  {item.description}
+                  {item.shortDescription || item.description || ''}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-warm-500">
@@ -125,7 +125,7 @@ export function SamplePreviewSection() {
                   </span>
                   <span className="inline-flex items-center gap-1 bg-warm-50 px-2.5 py-1 rounded-md border border-warm-200">
                     <Award className="w-3.5 h-3.5 text-warm-600" />
-                    Min GPA {item.minGpa.toFixed(1)}
+                    Min GPA {item.minGpa !== undefined ? item.minGpa.toFixed(1) : (item.academicRequirement?.minScore ?? 'N/A')}
                   </span>
                 </div>
               </div>
@@ -135,7 +135,7 @@ export function SamplePreviewSection() {
                   <Calendar className="w-3.5 h-3.5 text-warm-500" />
                   <span>Due {formatDisplayDate(item.deadline)}</span>
                 </div>
-                <UrgencyBadge urgency={item.urgency} daysRemaining={item.daysRemaining} />
+                <UrgencyBadge urgency={item.urgency ?? 'normal'} daysRemaining={item.daysRemaining ?? 0} />
               </div>
             </Card>
           ))}

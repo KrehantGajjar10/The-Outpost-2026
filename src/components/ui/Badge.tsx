@@ -51,6 +51,14 @@ export function UrgencyBadge({
   urgency: UrgencyLevel
   daysRemaining: number
 }) {
+  if (urgency === 'expired' || daysRemaining < 0) {
+    return (
+      <Badge variant="neutral" size="sm" className="bg-warm-100 text-warm-600 border-warm-300">
+        <span className="w-1.5 h-1.5 rounded-full bg-warm-500" />
+        Deadline passed
+      </Badge>
+    )
+  }
   if (urgency === 'urgent') {
     return (
       <Badge variant="urgent" size="sm">

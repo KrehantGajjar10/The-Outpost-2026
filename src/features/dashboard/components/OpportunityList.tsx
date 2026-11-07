@@ -64,9 +64,8 @@ export function OpportunityList({
         </div>
       </div>
 
-      {/* Category filter tabs */}
+      {/* Category filter buttons */}
       <div
-        role="tablist"
         aria-label="Filter opportunities by field"
         className="flex items-center gap-2 overflow-x-auto pb-2"
       >
@@ -74,8 +73,7 @@ export function OpportunityList({
           <button
             key={cat.key}
             type="button"
-            role="tab"
-            aria-selected={filters.category === cat.key}
+            aria-pressed={filters.category === cat.key}
             onClick={() => onCategoryChange(cat.key)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
               filters.category === cat.key
@@ -111,7 +109,7 @@ export function OpportunityList({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {scholarships.map((item) => {
-            const isSaved = item.status === 'saved' || item.status === 'in_progress'
+            const isSaved = item.isSaved ?? false
 
             return (
               <Card
@@ -127,7 +125,7 @@ export function OpportunityList({
                           {item.categoryLabel}
                         </span>
                         <span className="text-warm-300">•</span>
-                        <StatusBadge status={item.status} />
+                        <StatusBadge status={item.status ?? 'recommended'} />
                       </div>
                       <h3 className="text-base font-bold text-forest-900 line-clamp-1">
                         {item.title}
@@ -154,19 +152,19 @@ export function OpportunityList({
                   </div>
 
                   <p className="text-xs text-warm-600 line-clamp-2 leading-relaxed">
-                    {item.description}
+                    {item.detailedDescription || item.shortDescription || item.description || ''}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-2 text-xs text-warm-500">
                     <span className="inline-flex items-center gap-1 bg-warm-50 px-2 py-0.5 rounded border border-warm-200">
                       <Award className="w-3 h-3 text-forest-700" />
-                      Min GPA {item.minGpa.toFixed(1)}
+                      Min GPA {item.minGpa !== undefined ? item.minGpa.toFixed(1) : (item.academicRequirement?.minScore ?? 'N/A')}
                     </span>
                     <span className="inline-flex items-center gap-1 bg-warm-50 px-2 py-0.5 rounded border border-warm-200">
-                      {item.isRenewable ? 'Renewable' : 'One-time'}
+                      {item.isRenewable || item.awardType === 'renewable' ? 'Renewable' : 'One-time'}
                     </span>
                     <span className="inline-flex items-center gap-1 bg-warm-50 px-2 py-0.5 rounded border border-warm-200">
-                      {item.requirements.length} Requirements
+                      {(item.requirements ?? item.requiredDocuments ?? []).length} Requirements
                     </span>
                   </div>
                 </div>
@@ -174,7 +172,7 @@ export function OpportunityList({
                 <div className="pt-3 border-t border-warm-100 flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <span className="text-base font-bold text-forest-900">
-                      {item.amountFormatted.split(' ')[0]}
+                      {(item.formattedAmount || item.amountFormatted || '').split(' ')[0]}
                     </span>
                     <div className="flex items-center gap-1 text-[11px] text-warm-500">
                       <Calendar className="w-3 h-3" />
@@ -183,7 +181,7 @@ export function OpportunityList({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <UrgencyBadge urgency={item.urgency} daysRemaining={item.daysRemaining} />
+                    <UrgencyBadge urgency={item.urgency ?? 'normal'} daysRemaining={item.daysRemaining ?? 0} />
                     <Button
                       variant="outline"
                       size="sm"

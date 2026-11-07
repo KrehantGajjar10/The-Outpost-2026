@@ -50,14 +50,14 @@ export function NotificationPanel({
       ref={panelRef}
       role="dialog"
       aria-label="Application Notifications"
-      className="absolute right-0 top-12 w-80 sm:w-96 bg-white rounded-2xl border border-warm-300 shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="absolute right-0 top-12 w-80 sm:w-96 bg-white rounded-2xl border border-warm-300 shadow-xl z-50 overflow-hidden transition-all duration-150"
     >
       <div className="px-4 py-3 border-b border-warm-200 bg-warm-50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-forest-700" />
           <h3 className="text-sm font-bold text-forest-900">Notifications</h3>
           {unreadCount > 0 && (
-            <span className="text-[11px] font-semibold bg-[#e11d48] text-white px-2 py-0.2 rounded-full">
+            <span className="text-[11px] font-semibold bg-[#e11d48] text-white px-2 py-0.5 rounded-full">
               {unreadCount} new
             </span>
           )}

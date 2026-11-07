@@ -7,10 +7,10 @@ describe('Scholarship pipeline data verification', () => {
     for (const sch of INITIAL_DEMO_SCHOLARSHIPS) {
       expect(sch.id).toBeTruthy()
       expect(sch.title).toBeTruthy()
-      expect(sch.amount).toBeGreaterThan(0)
-      expect(sch.daysRemaining).toBeGreaterThanOrEqual(0)
+      expect(sch.amount || sch.fundingAmount || 0).toBeGreaterThan(0)
+      expect(sch.daysRemaining ?? 0).toBeGreaterThanOrEqual(0)
       expect(sch.isSampleData).toBe(true)
-      expect(Array.isArray(sch.requirements)).toBe(true)
+      expect(Array.isArray(sch.requirements ?? sch.requiredDocuments)).toBe(true)
     }
   })
 
@@ -18,7 +18,7 @@ describe('Scholarship pipeline data verification', () => {
     const savedOrTracked = INITIAL_DEMO_SCHOLARSHIPS.filter(
       (s) => s.status === 'saved' || s.status === 'in_progress' || s.status === 'submitted',
     )
-    const expectedSum = savedOrTracked.reduce((acc, curr) => acc + curr.amount, 0)
+    const expectedSum = savedOrTracked.reduce((acc, curr) => acc + (curr.amount || curr.fundingAmount || 0), 0)
     expect(expectedSum).toBeGreaterThan(0)
 
     const inProgress = INITIAL_DEMO_SCHOLARSHIPS.filter((s) => s.status === 'in_progress')

@@ -41,9 +41,9 @@ export function OverviewMetrics({ metrics, onSelectMetric }: OverviewMetricsProp
       id: 'funding' as const,
       title: 'Potential Funding',
       value: metrics.formattedPotentialFunding,
-      subtitle: 'Calculated across saved & tracked awards',
+      subtitle: 'Calculated across saved & tracked scholarships',
       icon: <DollarSign className="w-5 h-5 text-[#166534]" />,
-      badge: 'Total pipeline value',
+      badge: 'Total pipeline value (USD)',
       bgColor: 'bg-[#f0fdf4]',
     },
   ]

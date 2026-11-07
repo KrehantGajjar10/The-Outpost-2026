@@ -61,7 +61,7 @@ export function HeroSection() {
               transition={{ duration: 0.4, delay: 0.2 }}
               className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2"
             >
-              <Link to="/dashboard" className="w-full sm:w-auto">
+              <Link to="/scholarships" className="w-full sm:w-auto">
                 <Button
                   variant="primary"
                   size="lg"
@@ -69,14 +69,14 @@ export function HeroSection() {
                   icon={<ArrowRight className="w-5 h-5" />}
                   iconPosition="right"
                 >
-                  Explore Dashboard Demo
+                  Find Scholarships
                 </Button>
               </Link>
-              <a href="#how-it-works" className="w-full sm:w-auto">
+              <Link to="/dashboard" className="w-full sm:w-auto">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto text-base">
-                  See How It Works
+                  Dashboard Demo
                 </Button>
-              </a>
+              </Link>
             </motion.div>
 
             {/* Value Checkpoints */}
@@ -92,11 +92,11 @@ export function HeroSection() {
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Multi-modal deadline urgency alerts</span>
+                <span>Multi-modal deadline alerts</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Verified eligibility requirements</span>
+                <span>Structured eligibility criteria</span>
               </span>
             </motion.div>
           </div>
@@ -185,7 +185,7 @@ export function HeroSection() {
               <div className="pt-1 flex items-center justify-between text-[11px] text-warm-500">
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  Verified Provider Data
+                  Sample Scholarship Data
                 </span>
                 <Link
                   to="/dashboard"

@@ -9,6 +9,8 @@ import {
   Menu,
   X,
   ArrowLeft,
+  User,
+  Search,
 } from 'lucide-react'
 import { DEMO_STUDENT_PROFILE } from '../data/mockStudentProfile'
 import { NotificationPanel } from './NotificationPanel'
@@ -105,7 +107,7 @@ export function DashboardLayout({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-lg tracking-tight text-white">GRANTLY</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-forest-800 text-emerald-400 border border-forest-700">
+                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-forest-800 text-emerald-400 border border-forest-700">
                   Demo
                 </span>
               </div>
@@ -142,6 +144,27 @@ export function DashboardLayout({
             </nav>
           </div>
 
+          {/* Discovery & Profile Links */}
+          <div className="pt-4 border-t border-forest-800 space-y-1">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-forest-300 px-3 pb-2">
+              Platform
+            </p>
+            <Link
+              to="/scholarships"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-forest-200 hover:bg-forest-950 hover:text-white transition-colors"
+            >
+              <Search className="w-4 h-4 text-emerald-400" />
+              <span>Find Scholarships</span>
+            </Link>
+            <Link
+              to="/profile"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-forest-200 hover:bg-forest-950 hover:text-white transition-colors"
+            >
+              <User className="w-4 h-4 text-emerald-400" />
+              <span>Student Profile</span>
+            </Link>
+          </div>
+
           {/* Quick exit to Landing page */}
           <div className="pt-4 border-t border-forest-800">
             <Link
@@ -155,13 +178,16 @@ export function DashboardLayout({
         </div>
 
         {/* Fictional Profile Card in Sidebar */}
-        <div className="p-4 m-4 rounded-xl bg-forest-950 border border-forest-700/70 space-y-2">
+        <Link
+          to="/profile"
+          className="p-4 m-4 rounded-xl bg-forest-950 border border-forest-700/70 space-y-2 hover:border-emerald-400 transition-colors block group cursor-pointer"
+        >
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-forest-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
               ER
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-bold text-white truncate">
+              <p className="text-xs font-bold text-white truncate group-hover:text-emerald-300">
                 {DEMO_STUDENT_PROFILE.fullName}
               </p>
               <p className="text-[10px] text-forest-200 truncate">
@@ -171,9 +197,9 @@ export function DashboardLayout({
           </div>
           <div className="pt-1.5 border-t border-forest-800 flex items-center justify-between text-[10px] text-forest-300">
             <span>{DEMO_STUDENT_PROFILE.institution}</span>
-            <span className="font-mono">Simulated</span>
+            <span className="font-mono text-emerald-400">Edit Profile →</span>
           </div>
-        </div>
+        </Link>
       </aside>
 
       {/* Main Container */}
@@ -236,7 +262,11 @@ export function DashboardLayout({
             </div>
 
             {/* Profile Avatar Trigger */}
-            <div className="flex items-center gap-2 pl-2 border-l border-warm-200">
+            <Link
+              to="/profile"
+              className="flex items-center gap-2 pl-2 border-l border-warm-200 hover:opacity-85 transition-opacity cursor-pointer"
+              title="View & Edit Student Profile"
+            >
               <div className="w-8 h-8 rounded-xl bg-forest-900 text-emerald-400 flex items-center justify-center font-bold text-xs shadow-xs">
                 ER
               </div>
@@ -245,10 +275,10 @@ export function DashboardLayout({
                   {DEMO_STUDENT_PROFILE.preferredName}
                 </p>
                 <p className="text-[10px] text-warm-500 leading-none mt-1">
-                  Demo Applicant
+                  Demo Profile
                 </p>
               </div>
-            </div>
+            </Link>
           </div>
         </header>
 
@@ -299,6 +329,24 @@ export function DashboardLayout({
                       <span>{item.label}</span>
                     </button>
                   ))}
+                  <div className="pt-2 border-t border-forest-800 my-2 space-y-1">
+                    <Link
+                      to="/scholarships"
+                      onClick={() => setMobileDrawerOpen(false)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-forest-200 hover:bg-forest-800 hover:text-white transition-colors"
+                    >
+                      <Search className="w-4 h-4 text-emerald-400" />
+                      <span>Find Scholarships</span>
+                    </Link>
+                    <Link
+                      to="/profile"
+                      onClick={() => setMobileDrawerOpen(false)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-forest-200 hover:bg-forest-800 hover:text-white transition-colors"
+                    >
+                      <User className="w-4 h-4 text-emerald-400" />
+                      <span>Student Profile</span>
+                    </Link>
+                  </div>
                 </nav>
 
                 <div className="pt-4 border-t border-forest-800">

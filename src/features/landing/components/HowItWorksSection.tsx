@@ -7,7 +7,7 @@ export function HowItWorksSection() {
       step: '01',
       title: 'Discover Targeted Opportunities',
       description:
-        'Filter awards by your academic major, verified GPA criteria, citizenship eligibility, and award types without wading through sponsored advertisements.',
+        'Filter scholarships by your academic major, eligibility criteria, nationality, and award types without wading through sponsored advertisements.',
       icon: <Search className="w-6 h-6 text-emerald-500" />,
       badge: 'Discovery Phase',
     },

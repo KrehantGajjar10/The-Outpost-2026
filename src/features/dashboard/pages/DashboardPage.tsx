@@ -116,13 +116,11 @@ export function DashboardPage() {
         onClose={() => setSelectedScholarship(null)}
         onToggleSave={(id) => {
           toggleSaveScholarship(id)
-          // Update selected modal object if open
           setSelectedScholarship((curr) => {
             if (!curr || curr.id !== id) return curr
-            const isCurrentlySaved = curr.status === 'saved' || curr.status === 'in_progress'
             return {
               ...curr,
-              status: isCurrentlySaved ? 'recommended' : 'saved',
+              isSaved: !curr.isSaved,
             }
           })
         }}

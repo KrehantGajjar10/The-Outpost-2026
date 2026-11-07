@@ -1,4 +1,5 @@
-import { ArrowRight, Calendar, Sparkles } from 'lucide-react'
+import { ArrowRight, Calendar, Sparkles, Compass } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { DemoNotice } from '../../../components/shared/DemoNotice'
 import { DEMO_STUDENT_PROFILE } from '../data/mockStudentProfile'
@@ -45,20 +46,30 @@ export function WelcomeSection({
 
           {/* Quick action triggers */}
           <div className="pt-2 flex flex-wrap items-center gap-3">
+            <Link to="/scholarships">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-emerald-50 text-forest-950 hover:bg-emerald-100 border-0"
+                icon={<Compass className="w-3.5 h-3.5 text-emerald-600" />}
+              >
+                Find More Scholarships
+              </Button>
+            </Link>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={onJumpToDeadlines}
-              className="bg-emerald-50 text-forest-950 hover:bg-emerald-100 border-0"
-              icon={<Calendar className="w-3.5 h-3.5 text-emerald-600" />}
+              className="bg-forest-950/40 text-forest-950 hover:text-white border-forest-700 hover:bg-forest-950"
+              icon={<Calendar className="w-3.5 h-3.5 text-emerald-400" />}
             >
-              View Upcoming Deadlines
+              Upcoming Deadlines
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={onFilterInProgress}
-              className="bg-forest-950/40 text-forest-950 border-forest-700 hover:bg-forest-950 hover:text-white"
+              className="bg-forest-950/40 text-forest-950 hover:text-white border-forest-700 hover:bg-forest-950"
               icon={<ArrowRight className="w-3.5 h-3.5" />}
               iconPosition="right"
             >
